@@ -1,12 +1,10 @@
 from setuptools import find_packages
 from setuptools import setup
 
-import stone_burner
-
 setup(
     name='stone-burner',
     version='0.1',
-    description=stone_burner.__doc__.strip(),
+    description='Give more power to Terraform.',
     packages=find_packages(),
     install_requires=[
         'jinja2==2.9',
@@ -16,7 +14,7 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'stone-burner = stone_burner:main',
+            'stone-burner = stone_burner.cli:main',
         ],
     },
 )
