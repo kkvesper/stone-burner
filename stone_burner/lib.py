@@ -120,9 +120,9 @@ class TFAttributes(object):
     def check_variables(*args, **kwargs):
         component_config = kwargs['component_config']
         validate_config = component_config.get('validate', {})
-        check_variables = str(validate_config.get('check-variables', True))
+        check_variables = validate_config.get('check-variables', True)
 
-        return [check_variables]
+        return ['true'] if check_variables else ['false']
 
 
 def run_command(cmd, project, component, environment, verbose=0, *args, **kwargs):
