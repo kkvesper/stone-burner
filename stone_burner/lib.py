@@ -2,6 +2,7 @@
 from __future__ import print_function
 
 import os
+import copy
 import shutil
 import subprocess
 import sys
@@ -16,43 +17,59 @@ from utils import info
 from utils import success
 
 
+DEFAULT_ROOT_DIR = os.path.abspath(os.getcwd())
+DEFAULT_STATES_DIR = os.path.abspath('./states')
+DEFAULT_PROJECTS_DIR = os.path.abspath('./projects')
+DEFAULT_VARS_DIR = os.path.abspath('./variables')
+
+
 OPTIONS_BY_COMMAND = {
     'init': {
         'options': ['backend', 'backend-config'],
-        'args': ['config']
+        'args': []
     },
     'get': {
         'options': [],
-        'args': ['config']
+        'args': []
     },
     'plan': {
-        'options': ['var-file', 'state'],
-        'args': ['config'],
+        'options': ['var-file'],
+        'args': [],
     },
     'apply': {
-        'options': ['var-file', 'state'],
-        'args': ['config'],
+        'options': ['var-file'],
+        'args': [],
     },
     'destroy': {
-        'options': ['var-file', 'state'],
-        'args': ['config'],
+        'options': ['var-file'],
+        'args': [],
     },
     'refresh': {
-        'options': ['var-file', 'state'],
-        'args': ['config'],
+        'options': ['var-file'],
+        'args': [],
     },
     'import': {
-        'options': ['var-file', 'state', 'config'],
+        'options': ['var-file'],
         'args': ['address', 'id'],
     },
     'validate': {
         'options': ['var-file', 'check-variables'],
-        'args': ['config'],
+        'args': [],
+    },
+    'state': {
+        'options': [],
+        'args': [],
     },
 }
 
 
 class TFAttributes(object):
+    def __init__(self, root_dir=DEFAULT_ROOT_DIR, projects_dir=DEFAULT_PROJECTS_DIR, states_dir=DEFAULT_STATES_DIR, vars_dir=DEFAULT_VARS_DIR):
+        self.root_dir = root_dir
+        self.projects_dir = projects_dir
+        self.states_dir = states_dir
+        self.vars_dir = vars_dir
+
     def backend(*args, **kwargs):
         no_remote = os.environ.get('TF_NO_REMOTE', '0')
         return ['false'] if no_remote == '1' else ['true']
@@ -76,7 +93,7 @@ class TFAttributes(object):
 
         return env_config[environment]
 
-    def var_file(*args, **kwargs):
+    def var_file(self, *args, **kwargs):
         project = kwargs['project']
         component = kwargs['component']
         environment = kwargs['environment']
@@ -84,10 +101,9 @@ class TFAttributes(object):
 
         result = []
 
-        vars_dir = os.path.abspath('./variables')
-        shared_vars_file = os.path.join(vars_dir, environment, project, 'shared.tfvars')
+        shared_vars_file = os.path.join(self.vars_dir, environment, project, 'shared.tfvars')
         variables = component_config.get('variables', component)
-        vars_file = os.path.join(vars_dir, environment, project, '%s.tfvars' % variables)
+        vars_file = os.path.join(self.vars_dir, environment, project, '%s.tfvars' % variables)
 
         if os.path.exists(shared_vars_file):
             result.append(shared_vars_file)
@@ -96,20 +112,6 @@ class TFAttributes(object):
             result.append(vars_file)
 
         return result
-
-    def state(*args, **kwargs):
-        return ['./.terraform/terraform.tfstate']
-
-    def config(*args, **kwargs):
-        project = kwargs['project']
-        component = kwargs['component']
-        component_config = kwargs['component_config']
-
-        projects_dir = os.path.abspath('./projects')
-        component_dir = component_config.get('component', component)
-        project_dir = os.path.join(projects_dir, project, component_dir)
-
-        return [project_dir]
 
     def address(*args, **kwargs):
         return [kwargs['address']]
@@ -125,118 +127,153 @@ class TFAttributes(object):
         return ['true'] if check_variables else ['false']
 
 
-def run_command(cmd, project, component, environment, verbose=0, *args, **kwargs):
-    state_dir = os.path.join('./states', environment, project, component)
+def exec_command(cmd, pre_func=lambda: None, except_func=lambda: None, else_func=lambda: None, finally_func=lambda: None):
+    pre_func()
 
-    # Creating the environment folder
-    if not os.path.exists(state_dir):
+    try:
+        subprocess.check_call(cmd)
+    except Exception:
+        except_func()
+    else:
+        else_func()
+    finally:
+        finally_func()
+
+
+def run_command(cmd, project, component, component_config, environment, verbose=0, *args, **kwargs):
+    exec_dir = os.getcwd()
+    state_dir = os.path.abspath(os.path.join('./states', environment, project, component))
+    config_dir = os.path.abspath(os.path.join('./projects', project, component_config.get('component', component)))
+
+    new_kwargs = copy.deepcopy(kwargs)
+    new_kwargs['tf_args'] = []  # Don't want to send extra params to get and init commands
+
+    need_init = (
+        os.environ.get('TF_INIT', '0') == '1' or
+        not os.path.exists(state_dir) or
+        'terraform.tfstate' not in os.listdir(state_dir)
+    )
+
+    os.chdir(config_dir)
+
+    def save_state():
         if verbose > 2:
-            debug('State dir "%s" does not exist. Initializing folder...' % state_dir)
+            debug('Saving state into states dir...')
 
-        os.makedirs(state_dir)
+        if need_init and os.path.exists(state_dir):
+            shutil.rmtree(state_dir)
 
-    # Cleaning current terraform cache folder
-    if os.path.exists('.terraform'):
-        if verbose > 2:
-            debug('Removing cache folder: "%s"...' % os.path.join(os.getcwd(), '.terraform'))
+        if os.path.exists('.terraform'):
+            shutil.move('.terraform', state_dir)
 
-        shutil.rmtree('.terraform')
+        os.chdir(exec_dir)
 
-    if verbose > 2:
-        debug(
-            'Caching state: moving state folder "%s" to "%s"...' % (
-                state_dir, os.path.join(os.getcwd(), '.terraform'))
-        )
+    def handle_init_error():
+        error('There was an error executing your command. Please check the Terraform output.')
+        save_state()
+        sys.exit(1)
 
-    # Retrieve the preview cached state
-    shutil.move(state_dir, '.terraform')
+    def pre_cmd_msg():
+        if verbose > 0:
+            info('Running Terraform command: %s' % ' '.join(cmd))
+            info('<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>')
+            info('           COMMAND OUTPUT')
+            info()
 
-    if os.environ.get('TF_INIT', '0') == '1':
+    def handle_cmd_success():
+        if verbose > 0:
+            success()
+            success('OK!')
+
+    def handle_cmd_error():
+        error()
+        error('There was an error executing your command. Please check the Terraform output.')
+        sys.exit(1)
+
+    def handle_cmd_end():
+        if verbose > 0:
+            info('<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>')
+
+        save_state()
+
+    if need_init:
         # Set the remote config
         init_cmd = build_command(
             *args,
             command='init',
             project=project,
             component=component,
+            component_config=component_config,
             environment=environment,
-            **kwargs
+            **new_kwargs
         )
 
-        if verbose > 0:
-            info('Initializing project...')
-            info()
-            info(' '.join(init_cmd))
-
-        subprocess.check_call(init_cmd)
+        exec_command(
+            cmd=init_cmd,
+            pre_func=lambda: info('State not found or init forced, Initializing with terraform init...') if verbose > 0 else None,
+            except_func=handle_init_error,
+        )
     else:
-        # Fetch modules
+        shutil.move(state_dir, '.terraform')
+
         get_cmd = build_command(
             *args,
             command='get',
             project=project,
             component=component,
+            component_config=component_config,
             environment=environment,
-            **kwargs
+            **new_kwargs
         )
 
-        if verbose > 0:
-            info('Fetching modules.')
-            info(' '.join(get_cmd))
+        exec_command(
+            cmd=get_cmd,
+            pre_func=lambda: info('State found, fetching modules with terraform get...') if verbose > 0 else None,
+            except_func=handle_init_error,
+        )
 
-        subprocess.check_call(get_cmd)
-
-    if verbose > 0:
-        info('Running Terraform command:')
-        info(' '.join(cmd))
-
-    try:
-        subprocess.check_call(cmd)
-    except Exception:
-        if verbose > 2:
-            raise
-        else:
-            error('There was an error. Please check the Terraform output or increase verbosity')
-            sys.exit(1)
-    else:
-        if verbose > 0:
-            success('OK!')
-    finally:
-        # Save the cached state
-        if verbose > 2:
-            debug(
-                'Saving cached state: moving state folder "%s" to "%s"...' % (
-                    os.path.join(os.getcwd(), '.terraform'), state_dir)
-            )
-
-        shutil.move('.terraform', state_dir)
+    exec_command(
+        cmd=cmd,
+        pre_func=pre_cmd_msg,
+        except_func=handle_cmd_error,
+        else_func=handle_cmd_success,
+        finally_func=handle_cmd_end,
+    )
 
 
 def build_command(command, tf_args=[], *args, **kwargs):
     options = []
     arguments = []
 
-    for option in OPTIONS_BY_COMMAND[command]['options']:
+    if ' ' in command:
+        commands = command.split()
+        command = commands[0]
+        subcommands = commands[1:]
+    else:
+        subcommands = []
+
+    for option in OPTIONS_BY_COMMAND.get(command, {}).get('options', []):
         func_name = option.replace('-', '_')
         func = getattr(TFAttributes, func_name)
 
         values = func(TFAttributes(), *args, **kwargs)
         options += ['-%s=%s' % (option, value) for value in values]
 
-    for arg in OPTIONS_BY_COMMAND[command]['args']:
+    for arg in OPTIONS_BY_COMMAND.get(command, {}).get('args', []):
         func_name = arg.replace('-', '_')
         func = getattr(TFAttributes, func_name)
 
         values = func(TFAttributes(), *args, **kwargs)
         arguments += values
 
-    return ['terraform', command] + options + list(tf_args) + arguments
+    return ['terraform', command] + subcommands + options + list(tf_args) + arguments
 
 
-def check_validation(project, component, environment, component_config, verbose=0):
+def check_validation(project, component, environment, component_config, vars_dir=DEFAULT_VARS_DIR, verbose=0):
     title = '%s %s - %s %s' % ('=' * 10, project, component, '=' * 10)
 
     variables = component_config.get('variables', component)
-    vars_file = os.path.join('./variables', environment, project, '%s.tfvars' % variables)
+    vars_file = os.path.join(vars_dir, environment, project, '%s.tfvars' % variables)
 
     if verbose > 0:
         info(title)
@@ -276,11 +313,11 @@ def run(command, project, components, environment, config, exclude_components=[]
 
         if command == 'validate':
             should_validate = check_validation(
-                project,
-                component,
-                environment,
-                component_config,
-                verbose,
+                project=project,
+                component=component,
+                environment=environment,
+                component_config=component_config,
+                verbose=verbose,
             )
 
             if not should_validate:
@@ -298,6 +335,10 @@ def run(command, project, components, environment, config, exclude_components=[]
             **kwargs
         )
 
+        if verbose > 0:
+            info('::::::::::::::::::::::::::::::::::::::::::::::')
+            info('PROJECT =======> %s - %s' % (project, component))
+
         run_command(
             *args,
             cmd=cmd,
@@ -309,3 +350,8 @@ def run(command, project, components, environment, config, exclude_components=[]
             verbose=verbose,
             **kwargs
         )
+
+        if verbose > 0:
+            info('::::::::::::::::::::::::::::::::::::::::::::::')
+            info()
+            info()

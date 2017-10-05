@@ -178,5 +178,28 @@ def tf_import(project, component, address, id, environment, config, verbose, tf_
     )
 
 
+@click.argument('tf_args', nargs=-1, type=click.UNPROCESSED)
+@verbose_option()
+@config_file_option()
+@environment_option()
+@exclude_components_option()
+@components_option()
+@click.argument('project', type=str)
+@click.argument('subcommand', type=click.Choice(['list', 'mv', 'pull', 'push', 'rm', 'show']))
+@main.command('state', context_settings=dict(ignore_unknown_options=True))
+def tf_state(subcommand, project, components, exclude_components, environment, config, verbose, tf_args):
+    """Terraform state command (https://www.terraform.io/docs/commands/state/index.html)."""
+    run(
+        command='state %s' % subcommand,
+        project=project,
+        components=components,
+        exclude_components=exclude_components,
+        environment=environment,
+        config=config,
+        tf_args=tf_args,
+        verbose=verbose,
+    )
+
+
 if __name__ == '__main__':
     main()
