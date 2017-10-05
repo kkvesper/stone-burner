@@ -145,6 +145,8 @@ def run_command(cmd, project, component, component_config, environment, verbose=
     state_dir = os.path.abspath(os.path.join('./states', environment, project, component))
     config_dir = os.path.abspath(os.path.join('./projects', project, component_config.get('component', component)))
 
+    config_files = os.listdir(config_dir)
+
     new_kwargs = copy.deepcopy(kwargs)
     new_kwargs['tf_args'] = []  # Don't want to send extra params to get and init commands
 
@@ -165,6 +167,12 @@ def run_command(cmd, project, component, component_config, environment, verbose=
 
         if os.path.exists('.terraform'):
             shutil.move('.terraform', state_dir)
+
+        # Move also other new possible generated files from the terraform command
+        new_files = list(set(os.listdir(config_dir)) - set(config_files))
+
+        for f in new_files:
+            shutil.move(f, os.path.join(state_dir, f))
 
         os.chdir(exec_dir)
 
