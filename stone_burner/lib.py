@@ -153,7 +153,8 @@ def run_command(cmd, project, component, component_config, environment, verbose=
     need_init = (
         os.environ.get('TF_INIT', '0') == '1' or
         not os.path.exists(state_dir) or
-        'terraform.tfstate' not in os.listdir(state_dir)
+        'terraform.tfstate' not in os.listdir(state_dir) or
+        'plugins' not in os.listdir(state_dir)
     )
 
     os.chdir(config_dir)
@@ -162,7 +163,7 @@ def run_command(cmd, project, component, component_config, environment, verbose=
         if verbose > 2:
             debug('Saving state into states dir...')
 
-        if need_init and os.path.exists(state_dir):
+        if os.path.exists(state_dir) and os.path.exists('.terraform'):
             shutil.rmtree(state_dir)
 
         if os.path.exists('.terraform'):
@@ -205,40 +206,51 @@ def run_command(cmd, project, component, component_config, environment, verbose=
         save_state()
 
     if need_init:
-        # Set the remote config
-        init_cmd = build_command(
-            *args,
-            command='init',
-            project=project,
-            component=component,
-            component_config=component_config,
-            environment=environment,
-            **new_kwargs
-        )
+        init_tf_cmd = 'init'
 
-        exec_command(
-            cmd=init_cmd,
-            pre_func=lambda: info('State not found or init forced, Initializing with terraform init...') if verbose > 0 else None,
-            except_func=handle_init_error,
-        )
+        def init_pre_func():
+            info('State not found or init forced, Initializing with terraform init...') if verbose > 0 else None
     else:
+        init_tf_cmd = 'get'
+
+        def init_pre_func():
+            info('Fetching modules with terraform get...') if verbose > 0 else None
+
+    init_cmd = build_command(
+        *args,
+        command=init_tf_cmd,
+        project=project,
+        component=component,
+        component_config=component_config,
+        environment=environment,
+        **new_kwargs
+    )
+
+    if os.path.exists(state_dir):
         shutil.move(state_dir, '.terraform')
+        state_cached = True
+    else:
+        os.makedirs('.terraform')
+        state_cached = False
 
-        get_cmd = build_command(
-            *args,
-            command='get',
-            project=project,
-            component=component,
-            component_config=component_config,
-            environment=environment,
-            **new_kwargs
-        )
+    def rollback_state(signal, frame):
+        info('Ctrl+C pressed. Rolling back state...') if verbose > 0 else None
 
-        exec_command(
-            cmd=get_cmd,
-            pre_func=lambda: info('State found, fetching modules with terraform get...') if verbose > 0 else None,
-            except_func=handle_init_error,
-        )
+        if state_cached:
+            shutil.move('.terraform', state_dir)
+        else:
+            shutil.rmtree('.terraform')
+
+        os.chdir(exec_dir)
+        sys.exit(0)
+
+    signal.signal(signal.SIGINT, rollback_state)
+
+    exec_command(
+        cmd=init_cmd,
+        pre_func=init_pre_func,
+        except_func=handle_init_error,
+    )
 
     exec_command(
         cmd=cmd,
