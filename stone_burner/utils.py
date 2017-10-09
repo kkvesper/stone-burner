@@ -1,4 +1,5 @@
 import crayons
+import subprocess
 
 
 def add_signature(func):
@@ -29,3 +30,22 @@ def error(msg):
 @add_signature
 def debug(msg):
     print(crayons.blue(msg, bold=False))
+
+
+def exec_command(
+    cmd,
+    pre_func=lambda: None,
+    except_func=lambda: None,
+    else_func=lambda: None,
+    finally_func=lambda: None
+):
+    pre_func()
+
+    try:
+        subprocess.check_call(cmd)
+    except Exception:
+        except_func()
+    else:
+        else_func()
+    finally:
+        finally_func()

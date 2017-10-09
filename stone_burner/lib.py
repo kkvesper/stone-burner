@@ -1,11 +1,15 @@
 
 from __future__ import print_function
 
-import os
 import copy
+import os
+import signal
 import shutil
-import subprocess
 import sys
+
+from config import DEFAULT_VARS_DIR
+from config import OPTIONS_BY_COMMAND
+from config import TFAttributes
 
 from options import validate_components
 from options import validate_environment
@@ -13,131 +17,9 @@ from options import validate_project
 
 from utils import debug
 from utils import error
+from utils import exec_command
 from utils import info
 from utils import success
-
-
-DEFAULT_ROOT_DIR = os.path.abspath(os.getcwd())
-DEFAULT_STATES_DIR = os.path.abspath('./states')
-DEFAULT_PROJECTS_DIR = os.path.abspath('./projects')
-DEFAULT_VARS_DIR = os.path.abspath('./variables')
-
-
-OPTIONS_BY_COMMAND = {
-    'init': {
-        'options': ['backend', 'backend-config'],
-        'args': []
-    },
-    'get': {
-        'options': [],
-        'args': []
-    },
-    'plan': {
-        'options': ['var-file'],
-        'args': [],
-    },
-    'apply': {
-        'options': ['var-file'],
-        'args': [],
-    },
-    'destroy': {
-        'options': ['var-file'],
-        'args': [],
-    },
-    'refresh': {
-        'options': ['var-file'],
-        'args': [],
-    },
-    'import': {
-        'options': ['var-file'],
-        'args': ['address', 'id'],
-    },
-    'validate': {
-        'options': ['var-file', 'check-variables'],
-        'args': [],
-    },
-    'state': {
-        'options': [],
-        'args': [],
-    },
-}
-
-
-class TFAttributes(object):
-    def __init__(self, root_dir=DEFAULT_ROOT_DIR, projects_dir=DEFAULT_PROJECTS_DIR, states_dir=DEFAULT_STATES_DIR, vars_dir=DEFAULT_VARS_DIR):
-        self.root_dir = root_dir
-        self.projects_dir = projects_dir
-        self.states_dir = states_dir
-        self.vars_dir = vars_dir
-
-    def backend(*args, **kwargs):
-        no_remote = os.environ.get('TF_NO_REMOTE', '0')
-        return ['false'] if no_remote == '1' else ['true']
-
-    def backend_config(*args, **kwargs):
-        project = kwargs['project']
-        component = kwargs['component']
-        environment = kwargs['environment']
-        config = kwargs['config']
-
-        state_key = os.path.join(environment, project, '%s.tfstate' % component)
-
-        env_config = {
-            env['name']: [
-                'bucket=%s' % env['states_bucket'],
-                'profile=%s' % env['aws_profile'],
-                'key=%s' % state_key,
-            ]
-            for env in config['environments']
-        }
-
-        return env_config[environment]
-
-    def var_file(self, *args, **kwargs):
-        project = kwargs['project']
-        component = kwargs['component']
-        environment = kwargs['environment']
-        component_config = kwargs['component_config']
-
-        result = []
-
-        shared_vars_file = os.path.join(self.vars_dir, environment, project, 'shared.tfvars')
-        variables = component_config.get('variables', component)
-        vars_file = os.path.join(self.vars_dir, environment, project, '%s.tfvars' % variables)
-
-        if os.path.exists(shared_vars_file):
-            result.append(shared_vars_file)
-
-        if os.path.exists(vars_file):
-            result.append(vars_file)
-
-        return result
-
-    def address(*args, **kwargs):
-        return [kwargs['address']]
-
-    def id(*args, **kwargs):
-        return [kwargs['id']]
-
-    def check_variables(*args, **kwargs):
-        component_config = kwargs['component_config']
-        validate_config = component_config.get('validate', {})
-        check_variables = validate_config.get('check-variables', True)
-
-        return ['true'] if check_variables else ['false']
-
-
-def exec_command(cmd, pre_func=lambda: None, except_func=lambda: None, else_func=lambda: None, finally_func=lambda: None):
-    pre_func()
-
-    try:
-        subprocess.check_call(cmd)
-    except Exception:
-        except_func()
-    else:
-        else_func()
-    finally:
-        finally_func()
 
 
 def run_command(cmd, project, component, component_config, environment, verbose=0, *args, **kwargs):
@@ -261,7 +143,7 @@ def run_command(cmd, project, component, component_config, environment, verbose=
     )
 
 
-def build_command(command, tf_args=[], *args, **kwargs):
+def build_command(command, tf_args=[], options_by_command=OPTIONS_BY_COMMAND, *args, **kwargs):
     options = []
     arguments = []
 
@@ -272,14 +154,14 @@ def build_command(command, tf_args=[], *args, **kwargs):
     else:
         subcommands = []
 
-    for option in OPTIONS_BY_COMMAND.get(command, {}).get('options', []):
+    for option in options_by_command.get(command, {}).get('options', []):
         func_name = option.replace('-', '_')
         func = getattr(TFAttributes, func_name)
 
         values = func(TFAttributes(), *args, **kwargs)
         options += ['-%s=%s' % (option, value) for value in values]
 
-    for arg in OPTIONS_BY_COMMAND.get(command, {}).get('args', []):
+    for arg in options_by_command.get(command, {}).get('args', []):
         func_name = arg.replace('-', '_')
         func = getattr(TFAttributes, func_name)
 
