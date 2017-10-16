@@ -43,6 +43,15 @@ stone-burner plan project_1 -xc c3 -xc c4 # plan all except c3 and c4
 
 _Note:_ You can plan one project only if the projects it depends on have been applied.
 
+#### Passing extra parameters to terraform
+
+If you want to send extra parameters to `terraform` (like for example, the `-target`
+option), make sure to use `--` to avoid `stone-burner` trying to parse those options.
+For example:
+
+```bash
+stone-burner apply -e production project_1 -c c1 -- -target=some_resource.address
+```
 
 ## Configuration
 
