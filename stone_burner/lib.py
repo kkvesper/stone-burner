@@ -112,6 +112,9 @@ def run_command(cmd, project, component, component_config, environment, verbose=
         shutil.move(state_dir, '.terraform')
         state_cached = True
     else:
+        if os.path.exists('.terraform'):
+            shutil.rmtree('.terraform')
+
         os.makedirs('.terraform')
         state_cached = False
 
