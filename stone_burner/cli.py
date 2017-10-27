@@ -8,6 +8,7 @@ from lib import run
 
 from options import config_file_option
 from options import components_option
+from options import component_types_option
 from options import environment_option
 from options import exclude_components_option
 from options import validate_project
@@ -32,16 +33,31 @@ def projects(config):
 
 
 @config_file_option()
+@component_types_option()
 @click.argument('project', type=str)
 @main.command('components')
-def components(project, config):
+def components(project, component_type, config):
     """Display available components for a project in your configuration."""
     validate_project(project, config)
     components = config['projects'][project].keys()
 
-    print('Available components for project "%s":' % project)
+    if component_type:
+        print('Available components for project "%s" of type(s) "%s":' % (project, ', '.join(component_type)))
+    else:
+        print('Available components for project "%s":' % project)
+
     for component in components:
-        print('- %s' % component)
+        should_print = True
+
+        if component_type:
+            component_config = config['projects'][project][component] or {}
+            ct = component_config.get('component', component)
+
+            if ct not in component_type:
+                should_print = False
+
+        if should_print:
+            print('- %s' % component)
 
 
 @click.argument('tf_args', nargs=-1, type=click.UNPROCESSED)

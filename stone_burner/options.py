@@ -60,6 +60,17 @@ def exclude_components_option():
     )
 
 
+def component_types_option():
+    return click.option(
+        '-ct',
+        '--component-type',
+        type=str,
+        default=[],
+        help='Apply your action only to the components which belong to this type.',
+        multiple=True,
+    )
+
+
 def verbose_option():
     return click.option('-v', '--verbose', count=True)
 
