@@ -43,8 +43,9 @@ def exec_command(
     pre_func()
 
     try:
+        output = subprocess.check_output(cmd)
         if not suppress_output:
-            print(subprocess.check_output(cmd))
+            print(output)
     except subprocess.CalledProcessError:
         except_func()
     else:
