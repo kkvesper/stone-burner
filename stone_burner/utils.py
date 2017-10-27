@@ -45,8 +45,7 @@ def exec_command(
     try:
         if not suppress_output:
             print(subprocess.check_output(cmd))
-    except subprocess.CalledProcessError, e:
-        print("Terraform command error:\n", e.output)
+    except subprocess.CalledProcessError:
         except_func()
     else:
         else_func()
