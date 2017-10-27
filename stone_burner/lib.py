@@ -73,7 +73,6 @@ def run_command(cmd, project, component, component_config, environment, verbose=
 
     def handle_cmd_success():
         if verbose > 0:
-            success()
             success('OK!')
 
     def handle_cmd_error():
@@ -134,6 +133,8 @@ def run_command(cmd, project, component, component_config, environment, verbose=
         cmd=init_cmd,
         pre_func=init_pre_func,
         except_func=handle_init_error,
+        else_func=handle_cmd_success,
+        suppress_output=True,
     )
 
     exec_command(

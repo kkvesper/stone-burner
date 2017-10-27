@@ -37,13 +37,16 @@ def exec_command(
     pre_func=lambda: None,
     except_func=lambda: None,
     else_func=lambda: None,
-    finally_func=lambda: None
+    finally_func=lambda: None,
+    suppress_output=False,
 ):
     pre_func()
 
     try:
-        subprocess.check_call(cmd)
-    except Exception:
+        if not suppress_output:
+            print(subprocess.check_output(cmd))
+    except subprocess.CalledProcessError, e:
+        print("Terraform command error:\n", e.output)
         except_func()
     else:
         else_func()
