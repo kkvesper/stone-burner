@@ -65,14 +65,14 @@ def run_command(cmd, project, component, component_config, environment, verbose=
         sys.exit(1)
 
     def pre_cmd_msg():
-        if verbose > 0:
+        if verbose >= 0:
             info('Running Terraform command: %s' % ' '.join(cmd))
             info('<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>')
             info('           COMMAND OUTPUT')
             info()
 
     def handle_cmd_success():
-        if verbose > 0:
+        if verbose >= 0:
             success('OK!')
 
     def handle_cmd_error():
@@ -81,7 +81,7 @@ def run_command(cmd, project, component, component_config, environment, verbose=
         sys.exit(1)
 
     def handle_cmd_end():
-        if verbose > 0:
+        if verbose >= 0:
             info('<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>')
 
         save_state()
@@ -90,12 +90,12 @@ def run_command(cmd, project, component, component_config, environment, verbose=
         init_tf_cmd = 'init'
 
         def init_pre_func():
-            info('State not found or init forced, Initializing with terraform init...') if verbose > 0 else None
+            info('State not found or init forced, Initializing with terraform init...') if verbose >= 0 else None
     else:
         init_tf_cmd = 'get'
 
         def init_pre_func():
-            info('Fetching modules with terraform get...') if verbose > 0 else None
+            info('Fetching modules with terraform get...') if verbose >= 0 else None
 
     init_cmd = build_command(
         *args,
@@ -117,7 +117,7 @@ def run_command(cmd, project, component, component_config, environment, verbose=
         state_cached = False
 
     def rollback_state(signal, frame):
-        info('Ctrl+C pressed. Rolling back state...') if verbose > 0 else None
+        info('Ctrl+C pressed. Rolling back state...') if verbose >= 0 else None
 
         if state_cached:
             shutil.move('.terraform', state_dir)
@@ -134,7 +134,6 @@ def run_command(cmd, project, component, component_config, environment, verbose=
         pre_func=init_pre_func,
         except_func=handle_init_error,
         else_func=handle_cmd_success,
-        suppress_output=True,
     )
 
     exec_command(
@@ -180,12 +179,12 @@ def check_validation(project, component, environment, component_config, vars_dir
     variables = component_config.get('variables', component)
     vars_file = os.path.join(vars_dir, environment, project, '%s.tfvars' % variables)
 
-    if verbose > 0:
+    if verbose >= 0:
         info(title)
 
     # Don't validate projects without variables file
     if not os.path.exists(vars_file):
-        if verbose > 0:
+        if verbose >= 0:
             info('Skipping validation. Reason: vars-file "%s" not found.' % vars_file)
             success('OK!')
 
@@ -194,7 +193,7 @@ def check_validation(project, component, environment, component_config, vars_dir
     validate_config = component_config.get('validate', None)
 
     if validate_config and 'skip' in validate_config:
-        if verbose > 0:
+        if verbose >= 0:
             info('Skipping validation. Reason: "skip" found in the configuration.')
             success('OK!')
 
@@ -240,7 +239,7 @@ def run(command, project, components, environment, config, exclude_components=[]
             **kwargs
         )
 
-        if verbose > 0:
+        if verbose >= 0:
             info('::::::::::::::::::::::::::::::::::::::::::::::')
             info('PROJECT =======> %s - %s' % (project, component))
 
@@ -256,7 +255,7 @@ def run(command, project, components, environment, config, exclude_components=[]
             **kwargs
         )
 
-        if verbose > 0:
+        if verbose >= 0:
             info('::::::::::::::::::::::::::::::::::::::::::::::')
             info()
             info()

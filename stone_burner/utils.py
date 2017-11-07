@@ -38,14 +38,11 @@ def exec_command(
     except_func=lambda: None,
     else_func=lambda: None,
     finally_func=lambda: None,
-    suppress_output=False,
 ):
     pre_func()
 
     try:
-        output = subprocess.check_output(cmd)
-        if not suppress_output:
-            print(output)
+        subprocess.check_call(cmd)
     except subprocess.CalledProcessError:
         except_func()
     else:
