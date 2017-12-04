@@ -7,10 +7,10 @@ setup(
     description='Give more power to Terraform.',
     packages=find_packages(),
     install_requires=[
-        'jinja2==2.9',
-        'pyyaml==3.12',
-        'click==6.7',
-        'crayons==0.1.2',
+        'jinja2>=2.9',
+        'pyyaml>=3.12',
+        'click>=6.7',
+        'crayons>=0.1.2',
     ],
     entry_points={
         'console_scripts': [

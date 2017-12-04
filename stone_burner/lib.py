@@ -3,8 +3,6 @@ from __future__ import print_function
 
 import copy
 import os
-import signal
-import shutil
 import sys
 
 from config import DEFAULT_VARS_DIR
@@ -15,7 +13,6 @@ from options import validate_components
 from options import validate_environment
 from options import validate_project
 
-from utils import debug
 from utils import error
 from utils import exec_command
 from utils import info
@@ -23,11 +20,8 @@ from utils import success
 
 
 def run_command(cmd, project, component, component_config, environment, verbose=0, *args, **kwargs):
-    exec_dir = os.getcwd()
     state_dir = os.path.abspath(os.path.join('./states', environment, project, component))
     config_dir = os.path.abspath(os.path.join('./projects', project, component_config.get('component', component)))
-
-    config_files = os.listdir(config_dir)
 
     new_kwargs = copy.deepcopy(kwargs)
     new_kwargs['tf_args'] = []  # Don't want to send extra params to get and init commands
@@ -41,27 +35,8 @@ def run_command(cmd, project, component, component_config, environment, verbose=
 
     os.chdir(config_dir)
 
-    def save_state():
-        if verbose > 2:
-            debug('Saving state into states dir...')
-
-        if os.path.exists(state_dir) and os.path.exists('.terraform'):
-            shutil.rmtree(state_dir)
-
-        if os.path.exists('.terraform'):
-            shutil.move('.terraform', state_dir)
-
-        # Move also other new possible generated files from the terraform command
-        new_files = list(set(os.listdir(config_dir)) - set(config_files))
-
-        for f in new_files:
-            shutil.move(f, os.path.join(state_dir, f))
-
-        os.chdir(exec_dir)
-
     def handle_init_error():
         error('There was an error executing your command. Please check the Terraform output.')
-        save_state()
         sys.exit(1)
 
     def pre_cmd_msg():
@@ -69,22 +44,20 @@ def run_command(cmd, project, component, component_config, environment, verbose=
             info('Running Terraform command: %s' % ' '.join(cmd))
             info('<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>')
             info('           COMMAND OUTPUT')
-            info()
+            info('')
 
     def handle_cmd_success():
         if verbose >= 0:
             success('OK!')
 
     def handle_cmd_error():
-        error()
+        error('')
         error('There was an error executing your command. Please check the Terraform output.')
         sys.exit(1)
 
     def handle_cmd_end():
         if verbose >= 0:
             info('<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>')
-
-        save_state()
 
     if need_init:
         init_tf_cmd = 'init'
@@ -107,30 +80,9 @@ def run_command(cmd, project, component, component_config, environment, verbose=
         **new_kwargs
     )
 
-    if os.path.exists(state_dir):
-        shutil.move(state_dir, '.terraform')
-        state_cached = True
-    else:
-        if not os.path.exists('.terraform'):
-            os.makedirs('.terraform')
-
-        state_cached = False
-
-    def rollback_state(signal, frame):
-        info('Ctrl+C pressed. Rolling back state...') if verbose >= 0 else None
-
-        if state_cached:
-            shutil.move('.terraform', state_dir)
-        else:
-            shutil.rmtree('.terraform')
-
-        os.chdir(exec_dir)
-        sys.exit(0)
-
-    signal.signal(signal.SIGINT, rollback_state)
-
     exec_command(
         cmd=init_cmd,
+        tf_data_dir=state_dir,
         pre_func=init_pre_func,
         except_func=handle_init_error,
         else_func=handle_cmd_success,
@@ -138,6 +90,7 @@ def run_command(cmd, project, component, component_config, environment, verbose=
 
     exec_command(
         cmd=cmd,
+        tf_data_dir=state_dir,
         pre_func=pre_cmd_msg,
         except_func=handle_cmd_error,
         else_func=handle_cmd_success,
@@ -257,5 +210,5 @@ def run(command, project, components, environment, config, exclude_components=[]
 
         if verbose >= 0:
             info('::::::::::::::::::::::::::::::::::::::::::::::')
-            info()
-            info()
+            info('')
+            info('')

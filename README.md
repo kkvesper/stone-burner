@@ -5,8 +5,8 @@ projects and/or environments, among other features.
 
 ## Requirements
 
-* [Terraform](https://www.terraform.io/)
-* Python: 2.7 or higher
+* [Terraform](https://www.terraform.io/) v0.11 or higher
+* Python 2.7 or higher
 
 ## Install
 

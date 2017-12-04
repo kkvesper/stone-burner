@@ -1,3 +1,4 @@
+import os
 import crayons
 import subprocess
 
@@ -34,12 +35,16 @@ def debug(msg):
 
 def exec_command(
     cmd,
+    tf_data_dir=None,
     pre_func=lambda: None,
     except_func=lambda: None,
     else_func=lambda: None,
     finally_func=lambda: None,
 ):
     pre_func()
+
+    if tf_data_dir:
+        os.environ['TF_DATA_DIR'] = tf_data_dir
 
     try:
         subprocess.check_call(cmd)
@@ -48,4 +53,5 @@ def exec_command(
     else:
         else_func()
     finally:
+        os.environ.pop('TF_DATA_DIR', None)
         finally_func()
