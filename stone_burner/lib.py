@@ -30,7 +30,8 @@ def run_command(cmd, project, component, component_config, environment, verbose=
         os.environ.get('TF_INIT', '0') == '1' or
         not os.path.exists(state_dir) or
         'terraform.tfstate' not in os.listdir(state_dir) or
-        'plugins' not in os.listdir(state_dir)
+        'plugins' not in os.listdir(state_dir) or
+        'plugins_path' not in os.listdir(state_dir)
     )
 
     os.chdir(config_dir)

@@ -28,9 +28,8 @@ stone-burner --help
 stone-burner <command> --help
 ```
 
-*Note: The first time using terraform you will have to precede your command with `TF_INIT=1` so
-terraform can grab states from its corresponding backends and install the necessary
-plugins.*
+*Note: The first time using terraform you will have to run `stone-burner install` to initialize
+your projects.
 
 ### Example
 

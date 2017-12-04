@@ -1,5 +1,6 @@
 import os
 
+DEFAULT_STONE_BURNER_DIR = os.path.join(os.path.expanduser("~"), '.stoneburner')
 DEFAULT_ROOT_DIR = os.path.abspath(os.getcwd())
 DEFAULT_STATES_DIR = os.path.abspath('./states')
 DEFAULT_PROJECTS_DIR = os.path.abspath('./projects')
@@ -7,7 +8,7 @@ DEFAULT_VARS_DIR = os.path.abspath('./variables')
 
 OPTIONS_BY_COMMAND = {
     'init': {
-        'options': ['backend', 'backend-config'],
+        'options': ['backend', 'backend-config', 'plugin-dir', 'get-plugins'],
         'args': []
     },
     'get': {
@@ -45,6 +46,22 @@ OPTIONS_BY_COMMAND = {
 }
 
 
+def get_plugins_dir():
+    stone_burner_dir = os.environ.get(
+        'STONE_BURNER_DIR', DEFAULT_STONE_BURNER_DIR
+    )
+
+    plugin_dir = os.path.join(stone_burner_dir, 'plugins')
+
+    if not os.path.exists(stone_burner_dir):
+        os.makedirs(stone_burner_dir)
+
+    if not os.path.exists(plugin_dir):
+        os.makedirs(plugin_dir)
+
+    return plugin_dir
+
+
 class TFAttributes(object):
     def __init__(
         self,
@@ -57,6 +74,7 @@ class TFAttributes(object):
         self.projects_dir = projects_dir
         self.states_dir = states_dir
         self.vars_dir = vars_dir
+        self.plugin_dir = get_plugins_dir()
 
     def backend(*args, **kwargs):
         no_remote = os.environ.get('TF_NO_REMOTE', '0')
@@ -80,6 +98,12 @@ class TFAttributes(object):
         }
 
         return env_config[environment]
+
+    def plugin_dir(self, *args, **kwargs):
+        return [self.plugin_dir]
+
+    def get_plugins(*args, **kwargs):
+        return ['false']
 
     def var_file(self, *args, **kwargs):
         project = kwargs['project']

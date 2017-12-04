@@ -3,9 +3,16 @@
 from __future__ import print_function
 
 import click
+import os
+import tempfile
+import shutil
+import subprocess
+
+from config import get_plugins_dir
 
 from lib import run
 
+from options import validate_components
 from options import config_file_option
 from options import components_option
 from options import component_types_option
@@ -13,6 +20,8 @@ from options import environment_option
 from options import exclude_components_option
 from options import validate_project
 from options import verbose_option
+
+from utils import exec_command
 
 
 @click.group()
@@ -58,6 +67,65 @@ def components(project, component_type, config):
 
         if should_print:
             print('- %s' % component)
+
+
+@verbose_option()
+@exclude_components_option()
+@components_option()
+@config_file_option()
+@click.argument('project', type=str)
+@main.command('install')
+def install(project, components, exclude_components, config, verbose):
+    """Discover and downloads plugins from your components."""
+    project = validate_project(project, config)
+
+    # If no component is chosen, use all of them
+    components = components if components else config['projects'][project].keys()
+
+    components = list(set(components) - set(exclude_components))
+    components = validate_components(components, project, config)
+
+    plugin_dir = get_plugins_dir()
+
+    for plugin in os.listdir(plugin_dir):
+        if plugin.startswith('terraform-provider-terraform'):
+            # Remove previous terraform plugin
+            os.remove(os.path.join(plugin_dir, plugin))
+
+    tf_bin = subprocess.check_output(['which', 'terraform']).split('\n')[0]
+    tf_version = subprocess.check_output(['terraform', '-v']).split('\n')[0].split(' ')[1]
+    tf_plugin_name = 'terraform-provider-terraform_%s_x4' % tf_version
+    tf_plugin_path = os.path.join(plugin_dir, tf_plugin_name)
+    shutil.copy2(tf_bin, tf_plugin_path)
+
+    workdir = os.getcwd()
+
+    for component in components:
+        component_config = config['projects'][project][component] or {}
+
+        config_dir = os.path.abspath(os.path.join(
+            './projects', project, component_config.get('component', component)
+        ))
+
+        os.chdir(config_dir)
+
+        temp_dir = tempfile.mkdtemp()
+
+        exec_command(
+            cmd=['terraform', 'init', '-backend=false', '-get=true', '-get-plugins=true', '-input=false'],
+            tf_data_dir=temp_dir,
+        )
+
+        for root, dirs, filenames in os.walk(os.path.join(temp_dir, 'plugins')):
+            for f in filenames:
+                f_path = os.path.join(root, f)
+
+                if f != 'lock.json':
+                    # TODO: keep json.lock file and merge new ones
+                    shutil.move(f_path, os.path.join(plugin_dir, f))
+
+        shutil.rmtree(temp_dir)
+        os.chdir(workdir)
 
 
 @click.argument('tf_args', nargs=-1, type=click.UNPROCESSED)
