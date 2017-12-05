@@ -6,7 +6,10 @@ import click
 import os
 import tempfile
 import shutil
+import stat
 import subprocess
+import urllib
+import zipfile
 
 from config import get_plugins_dir
 
@@ -22,6 +25,9 @@ from options import validate_project
 from options import verbose_option
 
 from utils import exec_command
+from utils import success
+from utils import info
+from utils import error
 
 
 @click.group()
@@ -36,9 +42,9 @@ def projects(config):
     """Display available projects in your configuration."""
     projects = config['projects'].keys()
 
-    print('Available projects:')
+    info('Available projects:')
     for project in projects:
-        print('- %s' % project)
+        info('- %s' % project)
 
 
 @config_file_option()
@@ -51,9 +57,9 @@ def components(project, component_type, config):
     components = config['projects'][project].keys()
 
     if component_type:
-        print('Available components for project "%s" of type(s) "%s":' % (project, ', '.join(component_type)))
+        info('Available components for project "%s" of type(s) "%s":' % (project, ', '.join(component_type)))
     else:
-        print('Available components for project "%s":' % project)
+        info('Available components for project "%s":' % project)
 
     for component in components:
         should_print = True
@@ -66,66 +72,155 @@ def components(project, component_type, config):
                 should_print = False
 
         if should_print:
-            print('- %s' % component)
+            info('- %s' % component)
 
 
 @verbose_option()
 @exclude_components_option()
 @components_option()
 @config_file_option()
-@click.argument('project', type=str)
+@click.option(
+    'project',
+    '-p',
+    '--project',
+    type=str,
+    default='',
+    help='Project to manage.',
+)
+@click.argument('packages', type=str, nargs=-1)
 @main.command('install')
-def install(project, components, exclude_components, config, verbose):
+def install(packages, **kwargs):
     """Discover and downloads plugins from your components."""
-    project = validate_project(project, config)
-
-    # If no component is chosen, use all of them
-    components = components if components else config['projects'][project].keys()
-
-    components = list(set(components) - set(exclude_components))
-    components = validate_components(components, project, config)
-
     plugin_dir = get_plugins_dir()
 
-    for plugin in os.listdir(plugin_dir):
-        if plugin.startswith('terraform-provider-terraform'):
-            # Remove previous terraform plugin
-            os.remove(os.path.join(plugin_dir, plugin))
+    # 0755
+    plugin_permissions = (
+        stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR |
+        stat.S_IRGRP | stat.S_IXGRP |
+        stat.S_IROTH | stat.S_IXOTH
+    )
 
-    tf_bin = subprocess.check_output(['which', 'terraform']).split('\n')[0]
-    tf_version = subprocess.check_output(['terraform', '-v']).split('\n')[0].split(' ')[1]
-    tf_plugin_name = 'terraform-provider-terraform_%s_x4' % tf_version
-    tf_plugin_path = os.path.join(plugin_dir, tf_plugin_name)
-    shutil.copy2(tf_bin, tf_plugin_path)
+    def install_terraform_plugin():
+        info('Installing terraform provider plugin from terraform binary...')
 
-    workdir = os.getcwd()
+        for plugin in os.listdir(plugin_dir):
+            if plugin.startswith('terraform-provider-terraform'):
+                # Remove previous terraform plugin
+                os.remove(os.path.join(plugin_dir, plugin))
 
-    for component in components:
-        component_config = config['projects'][project][component] or {}
+        tf_bin = subprocess.check_output(['which', 'terraform']).split('\n')[0]
+        tf_version = subprocess.check_output(
+            ['terraform', '-v']).split('\n')[0].split(' ')[1]
 
-        config_dir = os.path.abspath(os.path.join(
-            './projects', project, component_config.get('component', component)
-        ))
+        info('Found terraform at %s on version: %s' % (tf_bin, tf_version))
 
-        os.chdir(config_dir)
+        tf_plugin_name = 'terraform-provider-terraform_%s_x4' % tf_version
+        tf_plugin_path = os.path.join(plugin_dir, tf_plugin_name)
+
+        info('Installing %s on %s' % (tf_plugin_name, plugin_dir))
+        shutil.copy2(tf_bin, tf_plugin_path)
+        os.chmod(tf_plugin_path, plugin_permissions)
+        success('OK!')
+
+    def discover_and_install(project, components, exclude_components, config, verbose):
+        project = validate_project(project, config)
+
+        # If no component is chosen, use all of them
+        components = components if components else config['projects'][project].keys()
+
+        components = list(set(components) - set(exclude_components))
+        components = validate_components(components, project, config)
+
+        workdir = os.getcwd()
+
+        for component in components:
+            component_config = config['projects'][project][component] or {}
+
+            config_dir = os.path.abspath(os.path.join(
+                './projects', project, component_config.get('component', component)
+            ))
+
+            os.chdir(config_dir)
+
+            temp_dir = tempfile.mkdtemp()
+
+            exec_command(
+                cmd=['terraform', 'init', '-backend=false',
+                    '-get=true', '-get-plugins=true', '-input=false'],
+                tf_data_dir=temp_dir,
+            )
+
+            for root, dirs, filenames in os.walk(os.path.join(temp_dir, 'plugins')):
+                for f in filenames:
+                    f_path = os.path.join(root, f)
+
+                    if f != 'lock.json':
+                        # TODO: keep json.lock file and merge new ones
+                        shutil.move(f_path, os.path.join(plugin_dir, f))
+
+            shutil.rmtree(temp_dir)
+            os.chdir(workdir)
+
+    def manual_install():
+        import platform
+        suffix = ''
+        system = platform.system()
+
+        if system == 'Darwin':
+            suffix = 'darwin_amd64'
+        elif system == 'Linux':
+            machine = platform.machine()
+
+            if machine == 'x86_64':
+                suffix = 'linux_amd64'
+            elif machine == 'i386':
+                suffix = 'linux_386'
+            else:
+                raise Exception('Unsupported Linux architecture: %s' % machine)
+        else:
+            raise Exception('Unsupported distribution: %s' % system)
+
+        base_url = 'https://releases.hashicorp.com/'
 
         temp_dir = tempfile.mkdtemp()
+        downloader = urllib.URLopener()
 
-        exec_command(
-            cmd=['terraform', 'init', '-backend=false', '-get=true', '-get-plugins=true', '-input=false'],
-            tf_data_dir=temp_dir,
-        )
+        for pkg in packages:
+            try:
+                name, version = pkg.split('@')
+            except ValueError:
+                error('Bad package: %s. Packages must be specified in the form of <name>@<version>' % pkg)
 
-        for root, dirs, filenames in os.walk(os.path.join(temp_dir, 'plugins')):
-            for f in filenames:
-                f_path = os.path.join(root, f)
+            fname = 'terraform-provider-%s_%s_%s.zip' % (name, version, suffix)
+            url = os.path.join(base_url, 'terraform-provider-%s' % name, version, fname)
+            dest_file = os.path.join(temp_dir, fname)
 
-                if f != 'lock.json':
-                    # TODO: keep json.lock file and merge new ones
-                    shutil.move(f_path, os.path.join(plugin_dir, f))
+            info('downloading %s...' % url)
+            try:
+                downloader.retrieve(url, dest_file)
+            except Exception:
+                import traceback
+                error('An error ocurred downloading %s' % url)
+                error(traceback.format_exc())
+            else:
+                info('Extracting %s to %s' % (fname, plugin_dir))
+                zip_ref = zipfile.ZipFile(dest_file, 'r')
+                zip_ref.extractall(plugin_dir)
+                zip_ref.close()
+                success('OK!')
 
         shutil.rmtree(temp_dir)
-        os.chdir(workdir)
+        info('Setting plugin permissions...')
+        for f in os.listdir(plugin_dir):
+            os.chmod(os.path.join(plugin_dir, f), plugin_permissions)
+        success('OK!')
+
+    install_terraform_plugin()
+
+    if packages:
+        manual_install()
+    else:
+        discover_and_install(**kwargs)
 
 
 @click.argument('tf_args', nargs=-1, type=click.UNPROCESSED)

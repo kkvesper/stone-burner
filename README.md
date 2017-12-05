@@ -42,6 +42,26 @@ stone-burner plan project_1 -xc c3 -xc c4 # plan all except c3 and c4
 
 _Note:_ You can plan one project only if the projects it depends on have been applied.
 
+### Install provider plugins
+
+If you are using provider plugins in your configuration files, you will need to first install them
+in order to start working with terraform.
+
+`stone-burner` installs all the plugins under `~/.stoneburner/plugins` in order to save space disk and
+avoid re-downloading same plugins that are used in your different project/components.
+
+There are 2 ways of installing terraform provider plugins:
+
+- Discover and install from your configuration files:
+    ```bash
+    stone-burner install -p project_1 -c c1 -c c2
+    ```
+
+- Install plugins and versions manually:
+    ```bash
+    stone-burner install template@1.0.0 aws@1.5.0 kubernetes@1.0.1
+    ```
+
 #### Passing extra parameters to terraform
 
 If you want to send extra parameters to `terraform` (like for example, the `-target`
