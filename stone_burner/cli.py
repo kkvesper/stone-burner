@@ -186,28 +186,30 @@ def install(packages, **kwargs):
         downloader = urllib.URLopener()
 
         for pkg in packages:
+            info('Installing %s...' % pkg)
             try:
                 name, version = pkg.split('@')
             except ValueError:
-                error('Bad package: %s. Packages must be specified in the form of <name>@<version>' % pkg)
-
-            fname = 'terraform-provider-%s_%s_%s.zip' % (name, version, suffix)
-            url = os.path.join(base_url, 'terraform-provider-%s' % name, version, fname)
-            dest_file = os.path.join(temp_dir, fname)
-
-            info('downloading %s...' % url)
-            try:
-                downloader.retrieve(url, dest_file)
-            except Exception:
-                import traceback
-                error('An error ocurred downloading %s' % url)
-                error(traceback.format_exc())
+                error('Bad syntax: %s.' % pkg)
+                error('Packages must be specified with the following syntax: <name>@<version>')
             else:
-                info('Extracting %s to %s' % (fname, plugin_dir))
-                zip_ref = zipfile.ZipFile(dest_file, 'r')
-                zip_ref.extractall(plugin_dir)
-                zip_ref.close()
-                success('OK!')
+                fname = 'terraform-provider-%s_%s_%s.zip' % (name, version, suffix)
+                url = os.path.join(base_url, 'terraform-provider-%s' % name, version, fname)
+                dest_file = os.path.join(temp_dir, fname)
+
+                info('downloading %s...' % url)
+                try:
+                    downloader.retrieve(url, dest_file)
+                except Exception:
+                    import traceback
+                    error('An error ocurred downloading %s' % url)
+                    error(traceback.format_exc())
+                else:
+                    info('Extracting %s to %s...' % (fname, plugin_dir))
+                    zip_ref = zipfile.ZipFile(dest_file, 'r')
+                    zip_ref.extractall(plugin_dir)
+                    zip_ref.close()
+                    success('OK!')
 
         shutil.rmtree(temp_dir)
         info('Setting plugin permissions...')
