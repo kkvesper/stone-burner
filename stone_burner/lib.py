@@ -20,6 +20,7 @@ from utils import success
 
 
 def run_command(cmd, project, component, component_config, environment, verbose=0, *args, **kwargs):
+    work_dir = os.getcwd()
     state_dir = os.path.abspath(os.path.join('./states', environment, project, component))
     config_dir = os.path.abspath(os.path.join('./projects', project, component_config.get('component', component)))
 
@@ -31,7 +32,7 @@ def run_command(cmd, project, component, component_config, environment, verbose=
         not os.path.exists(state_dir) or
         'terraform.tfstate' not in os.listdir(state_dir) or
         'plugins' not in os.listdir(state_dir) or
-        'plugins_path' not in os.listdir(state_dir)
+        'plugin_path' not in os.listdir(state_dir)
     )
 
     os.chdir(config_dir)
@@ -97,6 +98,8 @@ def run_command(cmd, project, component, component_config, environment, verbose=
         else_func=handle_cmd_success,
         finally_func=handle_cmd_end,
     )
+
+    os.chdir(work_dir)
 
 
 def build_command(command, tf_args=[], options_by_command=OPTIONS_BY_COMMAND, *args, **kwargs):
