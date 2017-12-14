@@ -138,5 +138,13 @@ class TFAttributes(object):
 
         return ['true'] if check_variables else ['false']
 
-    def state(*args, **kwargs):
-        return ['./.terraform/terraform.tfstate']
+    def state(self, *args, **kwargs):
+        project = kwargs['project']
+        component = kwargs['component']
+        environment = kwargs['environment']
+
+        state_file = os.path.join(
+            self.states_dir, environment, project, component, 'terraform.tfstate'
+        )
+
+        return [state_file]
