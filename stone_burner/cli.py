@@ -3,19 +3,16 @@
 from __future__ import print_function
 
 import click
-import os
-import tempfile
-import shutil
-import stat
-import subprocess
-import urllib
-import zipfile
 
 from config import get_plugins_dir
+from config import parse_project_config
+
+from install import install_terraform_plugin
+from install import manual_install
+from install import discover_and_install
 
 from lib import run
 
-from options import validate_components
 from options import config_file_option
 from options import components_option
 from options import component_types_option
@@ -24,10 +21,7 @@ from options import exclude_components_option
 from options import validate_project
 from options import verbose_option
 
-from utils import exec_command
-from utils import success
 from utils import info
-from utils import error
 
 
 @click.group()
@@ -53,8 +47,9 @@ def projects(config):
 @main.command('components')
 def components(project, component_type, config):
     """Display available components for a project in your configuration."""
-    validate_project(project, config)
-    components = config['projects'][project].keys()
+    project = validate_project(project, config)
+    p_components = parse_project_config(config, project)
+    components = p_components.keys()
 
     if component_type:
         info('Available components for project "%s" of type(s) "%s":' % (project, ', '.join(component_type)))
@@ -65,8 +60,8 @@ def components(project, component_type, config):
         should_print = True
 
         if component_type:
-            component_config = config['projects'][project][component] or {}
-            ct = component_config.get('component', component)
+            component_config = p_components[component]
+            ct = component_config.get('component_type', component)
 
             if ct not in component_type:
                 should_print = False
@@ -91,138 +86,14 @@ def components(project, component_type, config):
 @main.command('install')
 def install(packages, **kwargs):
     """Discover and downloads plugins from your components."""
-    plugin_dir = get_plugins_dir()
+    plugins_dir = get_plugins_dir()
 
-    # 0755
-    plugin_permissions = (
-        stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR |
-        stat.S_IRGRP | stat.S_IXGRP |
-        stat.S_IROTH | stat.S_IXOTH
-    )
-
-    def install_terraform_plugin():
-        info('Installing terraform provider plugin from terraform binary...')
-
-        for plugin in os.listdir(plugin_dir):
-            if plugin.startswith('terraform-provider-terraform'):
-                # Remove previous terraform plugin
-                os.remove(os.path.join(plugin_dir, plugin))
-
-        tf_bin = subprocess.check_output(['which', 'terraform']).split('\n')[0]
-        tf_version = subprocess.check_output(
-            ['terraform', '-v']).split('\n')[0].split(' ')[1]
-
-        info('Found terraform at %s on version: %s' % (tf_bin, tf_version))
-
-        tf_plugin_name = 'terraform-provider-terraform_%s_x4' % tf_version
-        tf_plugin_path = os.path.join(plugin_dir, tf_plugin_name)
-
-        info('Installing %s on %s' % (tf_plugin_name, plugin_dir))
-        shutil.copy2(tf_bin, tf_plugin_path)
-        os.chmod(tf_plugin_path, plugin_permissions)
-        success('OK!')
-
-    def discover_and_install(project, components, exclude_components, config, verbose):
-        project = validate_project(project, config)
-
-        # If no component is chosen, use all of them
-        components = components if components else config['projects'][project].keys()
-
-        components = list(set(components) - set(exclude_components))
-        components = validate_components(components, project, config)
-
-        workdir = os.getcwd()
-
-        for component in components:
-            component_config = config['projects'][project][component] or {}
-
-            config_dir = os.path.abspath(os.path.join(
-                './projects', project, component_config.get('component', component)
-            ))
-
-            os.chdir(config_dir)
-
-            temp_dir = tempfile.mkdtemp()
-
-            exec_command(
-                cmd=['terraform', 'init', '-backend=false',
-                    '-get=true', '-get-plugins=true', '-input=false'],
-                tf_data_dir=temp_dir,
-            )
-
-            for root, dirs, filenames in os.walk(os.path.join(temp_dir, 'plugins')):
-                for f in filenames:
-                    f_path = os.path.join(root, f)
-
-                    if f != 'lock.json':
-                        # TODO: keep json.lock file and merge new ones
-                        shutil.move(f_path, os.path.join(plugin_dir, f))
-
-            shutil.rmtree(temp_dir)
-            os.chdir(workdir)
-
-    def manual_install():
-        import platform
-        suffix = ''
-        system = platform.system()
-
-        if system == 'Darwin':
-            suffix = 'darwin_amd64'
-        elif system == 'Linux':
-            machine = platform.machine()
-
-            if machine == 'x86_64':
-                suffix = 'linux_amd64'
-            elif machine == 'i386':
-                suffix = 'linux_386'
-            else:
-                raise Exception('Unsupported Linux architecture: %s' % machine)
-        else:
-            raise Exception('Unsupported distribution: %s' % system)
-
-        base_url = 'https://releases.hashicorp.com/'
-
-        temp_dir = tempfile.mkdtemp()
-        downloader = urllib.URLopener()
-
-        for pkg in packages:
-            info('Installing %s...' % pkg)
-            try:
-                name, version = pkg.split('@')
-            except ValueError:
-                error('Bad syntax: %s.' % pkg)
-                error('Packages must be specified with the following syntax: <name>@<version>')
-            else:
-                fname = 'terraform-provider-%s_%s_%s.zip' % (name, version, suffix)
-                url = os.path.join(base_url, 'terraform-provider-%s' % name, version, fname)
-                dest_file = os.path.join(temp_dir, fname)
-
-                info('downloading %s...' % url)
-                try:
-                    downloader.retrieve(url, dest_file)
-                except Exception:
-                    import traceback
-                    error('An error ocurred downloading %s' % url)
-                    error(traceback.format_exc())
-                else:
-                    info('Extracting %s to %s...' % (fname, plugin_dir))
-                    zip_ref = zipfile.ZipFile(dest_file, 'r')
-                    zip_ref.extractall(plugin_dir)
-                    zip_ref.close()
-                    success('OK!')
-
-        shutil.rmtree(temp_dir)
-        info('Setting plugin permissions...')
-        for f in os.listdir(plugin_dir):
-            os.chmod(os.path.join(plugin_dir, f), plugin_permissions)
-        success('OK!')
-
-    install_terraform_plugin()
+    install_terraform_plugin(plugins_dir)
 
     if packages:
-        manual_install()
+        manual_install(plugins_dir)
     else:
-        discover_and_install(**kwargs)
+        discover_and_install(plugins_dir, **kwargs)
 
 
 @click.argument('tf_args', nargs=-1, type=click.UNPROCESSED)

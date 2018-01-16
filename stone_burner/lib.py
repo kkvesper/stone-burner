@@ -1,13 +1,13 @@
-
 from __future__ import print_function
 
 import copy
 import os
 import sys
 
-from config import DEFAULT_VARS_DIR
 from config import OPTIONS_BY_COMMAND
 from config import TFAttributes
+from config import parse_project_config
+from config import get_component_paths
 
 from options import validate_components
 from options import validate_environment
@@ -21,8 +21,9 @@ from utils import success
 
 def run_command(cmd, project, component, component_config, environment, verbose=0, *args, **kwargs):
     work_dir = os.getcwd()
-    state_dir = os.path.abspath(os.path.join('./states', environment, project, component))
-    config_dir = os.path.abspath(os.path.join('./projects', project, component_config.get('component', component)))
+    c_paths = get_component_paths(project, component, component_config, environment)
+    state_dir = c_paths['state_dir']
+    config_dir = c_paths['config_dir']
 
     new_kwargs = copy.deepcopy(kwargs)
     new_kwargs['tf_args'] = []  # Don't want to send extra params to get and init commands
@@ -130,11 +131,11 @@ def build_command(command, tf_args=[], options_by_command=OPTIONS_BY_COMMAND, *a
     return ['terraform', command] + subcommands + options + list(tf_args) + arguments
 
 
-def check_validation(project, component, environment, component_config, vars_dir=DEFAULT_VARS_DIR, verbose=0):
+def check_validation(project, component, environment, component_config, verbose=0):
     title = '%s %s - %s %s' % ('=' * 10, project, component, '=' * 10)
+    c_paths = get_component_paths(project, component, component_config, environment)
 
-    variables = component_config.get('variables', component)
-    vars_file = os.path.join(vars_dir, environment, project, '%s.tfvars' % variables)
+    vars_file = c_paths['vars_file']
 
     if verbose >= 0:
         info(title)
@@ -142,7 +143,7 @@ def check_validation(project, component, environment, component_config, vars_dir
     # Don't validate projects without variables file
     if not os.path.exists(vars_file):
         if verbose >= 0:
-            info('Skipping validation. Reason: vars-file "%s" not found.' % vars_file)
+            info('Skipping validation. Reason: vars file "%s" not found.' % vars_file)
             success('OK!')
 
         return False
@@ -161,16 +162,19 @@ def check_validation(project, component, environment, component_config, vars_dir
 
 def run(command, project, components, environment, config, exclude_components=[], verbose=0, *args, **kwargs):
     project = validate_project(project, config)
+    p_components = parse_project_config(config, project)
 
-    # If no component is chosen, use all of them
-    components = components if components else config['projects'][project].keys()
+    if components:
+        components = validate_components(components, project, config)
+    else:
+        # If no component is chosen, use all of them
+        components = p_components.keys()
+
     components = list(set(components) - set(exclude_components))
-    components = validate_components(components, project, config)
-
     environment = validate_environment(environment, config)
 
     for component in components:
-        component_config = config['projects'][project][component] or {}
+        component_config = p_components[component] or {}
 
         if command == 'validate':
             should_validate = check_validation(

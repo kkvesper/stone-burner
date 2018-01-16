@@ -1,4 +1,6 @@
 import os
+import six
+
 
 DEFAULT_STONE_BURNER_DIR = os.path.join(os.path.expanduser("~"), '.stoneburner')
 DEFAULT_ROOT_DIR = os.path.abspath(os.getcwd())
@@ -46,6 +48,59 @@ OPTIONS_BY_COMMAND = {
 }
 
 
+def parse_project_config(config, project):
+    result = {}
+    p_config = config['projects'][project]
+
+    for elem in p_config:
+        if isinstance(elem, six.string_types):
+            result[elem] = {
+                'component_type': elem,
+                'validate': {},
+            }
+        elif isinstance(elem, dict):
+            d_keys = elem.keys()
+
+            if len(d_keys) != 1:
+                raise Exception(
+                    'Bad config for project: components defined as dictionaries must have exactly 1 key')
+
+            component_type = d_keys[0]  # The only key is the component type
+            info = elem[component_type]
+
+            if isinstance(info, list):
+                # It's a list of components from the same type
+                for c in info:
+                    if isinstance(c, six.string_types):
+                        result[c] = {
+                            'component_type': component_type,
+                            'validate': {},
+                        }
+                    elif isinstance(c, dict):
+                        d_keys = c.keys()
+
+                        if len(d_keys) != 1:
+                            raise Exception(
+                                'Bad config for project: components defined as dictionaries must have exactly 1 key')
+
+                        # The only key is the component type
+                        component_name = d_keys[0]
+                        c_info = c[component_name]
+
+                        result[component_name] = {
+                            'component_type': component_type,
+                            'validate': c_info['validate'],
+                        }
+            elif isinstance(info, dict):
+                # It's a component named the same as the component type with extra info
+                result[component_type] = {
+                    'component_type': component_type,
+                    'validate': info['validate'],
+                }
+
+    return result
+
+
 def get_plugins_dir():
     stone_burner_dir = os.environ.get(
         'STONE_BURNER_DIR', DEFAULT_STONE_BURNER_DIR
@@ -60,6 +115,14 @@ def get_plugins_dir():
         os.makedirs(plugin_dir)
 
     return plugin_dir
+
+
+def get_component_paths(project, component, component_config, environment, states_dir=DEFAULT_STATES_DIR, projects_dir=DEFAULT_PROJECTS_DIR, vars_dir=DEFAULT_VARS_DIR):
+    return {
+        'state_dir': os.path.abspath(os.path.join(states_dir, environment, project, component)),
+        'config_dir': os.path.abspath(os.path.join(projects_dir, project, component_config['component_type'])),
+        'vars_file': os.path.abspath(os.path.join(vars_dir, environment, project, '%s.tfvars' % component)),
+    }
 
 
 class TFAttributes(object):
@@ -133,7 +196,7 @@ class TFAttributes(object):
 
     def check_variables(*args, **kwargs):
         component_config = kwargs['component_config']
-        validate_config = component_config.get('validate', {})
+        validate_config = component_config.get('validate', {}) or {}
         check_variables = validate_config.get('check-variables', True)
 
         return ['true'] if check_variables else ['false']

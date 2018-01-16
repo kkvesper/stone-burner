@@ -2,6 +2,8 @@ import click
 import os
 import yaml
 
+from config import parse_project_config
+
 
 def config_file_option():
     class Config(click.ParamType):
@@ -90,7 +92,7 @@ def validate_project(project, config):
 
 
 def validate_components(components, project, config):
-    valid_components = config['projects'][project].keys()
+    valid_components = parse_project_config(config, project).keys()
 
     # Avoid duplicates
     components = list(set(components))

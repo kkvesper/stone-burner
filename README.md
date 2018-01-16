@@ -80,31 +80,25 @@ In this file, you can define projects by combining individual components and var
 ```yaml
 projects:
   project_1:
-    database:               # projects/project_1/database + variables/<environment>/project_1/database
-    app:                    # projects/project_1/app + variables/<environment>/project_1/app
-  project_2:                # projects/project_2
-    database_1:             # projects/project_2/database + variables/<environment>/project_2/database_1
-      component: database
-      variables: database_1
-    database_2:             # projects/project_2/database + variables/<environment>/project_2/database_2
-      component: database
-      variables: database_2
-    app_1:                  # projects/project_2/app + variables/<environment>/project_2/app_1
-      component: app
-      variables: app_1
-    app_2:                  # projects/project_2/app + variables/<environment>/project_2/app_2
-      component: app
-      variables: app_2
+    - database            # projects/project_1/database + variables/<environment>/project_1/database
+    - app                 # projects/project_1/app + variables/<environment>/project_1/app
+  project_2:
+    - database:
+      - database_1        # projects/project_2/database + variables/<environment>/project_2/database_1
+      - database_2        # projects/project_2/database + variables/<environment>/project_2/database_2
+    - app:
+      - app_1             # projects/project_2/app + variables/<environment>/project_2/app_1
+      - app_2             # projects/project_2/app + variables/<environment>/project_2/app_2
 ```
 
 So, there are 3 different key/values here:
 
 - Top level keys refer to **projects**.
-- Second level keys refer to **components**, which can be defined in 2 ways:
-  - If `component` and `variables` keys are set, the result will be the combination of
-  the component and variables.
-  - If these keys are not defined, a `component` and `variables` with the same project and
+- List elements under the project can be defined in 2 ways:
+  - As a string, a `component` and `variables` with the same project and
   component name will be used.
+  - As a dictionary, the key will refer to a *generic component* or *component type*. The list items under
+  this key will all use the same `component` (terraform configuration) using different variables.
 
 ### Environments
 
