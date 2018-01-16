@@ -3,8 +3,12 @@ from setuptools import setup
 
 setup(
     name='stone-burner',
-    version='0.1',
+    version='0.7.0',
     description='Give more power to Terraform.',
+    author='Rodrigo Argüello Flores',
+    author_email='rodrigo@kkvesper.jp',
+    url='https://github.com/kkvesper/stone-burner',
+    download_url='https://github.com/kkvesper/stone-burner/archive/v0.7.0.tar.gz',
     packages=find_packages(),
     install_requires=[
         'jinja2>=2.9',
@@ -17,4 +21,5 @@ setup(
             'stone-burner = stone_burner.cli:main',
         ],
     },
+    keywords=['terraform', 'planetary-annihilation', 'infrastructure-as-code'],
 )

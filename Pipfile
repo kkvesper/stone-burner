@@ -1,9 +1,17 @@
 [[source]]
+
 url = "https://pypi.python.org/simple"
 verify_ssl = true
+
+
 [packages]
 
 "jinja2" = "==2.9"
 pyyaml = "==3.12"
 click = "==6.7"
 crayons = "==0.1.2"
+
+
+[dev-packages]
+
+pytest = "*"
