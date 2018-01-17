@@ -2,6 +2,7 @@ import pytest
 
 from stone_burner.config import parse_project_config
 from stone_burner.config import TFAttributes
+from stone_burner.config import get_component_paths
 
 from utils import SAMPLE_CONFIG
 
@@ -67,3 +68,16 @@ def test_TFAttributes_check_variables_3():
         component_config={'component_type': 'c3', 'validate': None})
 
     assert r3 == ['true']
+
+
+def test_get_component_paths_1():
+    r = get_component_paths(
+        'p1', 'c1', {'component_type': 'gc'}, 'e1', '/tmp/states', '/tmp/projects', '/tmp/vars')
+
+    e = {
+        'config_dir': '/tmp/projects/p1/gc',
+        'vars_file': '/tmp/vars/e1/p1/c1.tfvars',
+        'state_dir': '/tmp/states/e1/p1/c1',
+    }
+
+    assert r == e
