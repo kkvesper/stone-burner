@@ -91,7 +91,7 @@ def install(packages, **kwargs):
     install_terraform_plugin(plugins_dir)
 
     if packages:
-        manual_install(plugins_dir)
+        manual_install(packages, plugins_dir)
     else:
         discover_and_install(plugins_dir, **kwargs)
 
