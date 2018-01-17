@@ -11,7 +11,7 @@ projects and/or environments, among other features.
 ## Install
 
 ```bash
-pip install --upgrade git+ssh://git@github.com/kkvesper/stone-burner.git
+pip install --upgrade stone-burner
 ```
 
 Alternatively, you can install it in your local machine in an isolated virtualenv with
