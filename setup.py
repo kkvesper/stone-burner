@@ -1,16 +1,18 @@
 # -*- coding: utf-8 -*-
 
+from stone_burner import __version__
+
 from setuptools import find_packages
 from setuptools import setup
 
 setup(
     name='stone-burner',
-    version='0.7.2',
+    version=__version__,
     description='Give more power to Terraform.',
     author='Rodrigo Argüello Flores',
     author_email='rodrigo@kkvesper.jp',
     url='https://github.com/kkvesper/stone-burner',
-    download_url='https://github.com/kkvesper/stone-burner/archive/v0.7.2.tar.gz',
+    download_url='https://github.com/kkvesper/stone-burner/archive/%s.tar.gz' % __version__,
     packages=find_packages(),
     install_requires=[
         'jinja2>=2.9',

@@ -45,25 +45,25 @@ def projects(config):
 @component_types_option()
 @click.argument('project', type=str)
 @main.command('components')
-def components(project, component_type, config):
+def components(project, component_types, config):
     """Display available components for a project in your configuration."""
     project = validate_project(project, config)
     p_components = parse_project_config(config, project)
     components = p_components.keys()
 
-    if component_type:
-        info('Available components for project "%s" of type(s) "%s":' % (project, ', '.join(component_type)))
+    if component_types:
+        info('Available components for project "%s" of type(s) "%s":' % (project, ', '.join(component_types)))
     else:
         info('Available components for project "%s":' % project)
 
     for component in components:
         should_print = True
 
-        if component_type:
+        if component_types:
             component_config = p_components[component]
             ct = component_config.get('component_type', component)
 
-            if ct not in component_type:
+            if ct not in component_types:
                 should_print = False
 
         if should_print:
@@ -72,6 +72,7 @@ def components(project, component_type, config):
 
 @verbose_option()
 @exclude_components_option()
+@component_types_option()
 @components_option()
 @config_file_option()
 @click.option(
@@ -100,16 +101,18 @@ def install(packages, **kwargs):
 @verbose_option()
 @environment_option()
 @exclude_components_option()
+@component_types_option()
 @components_option()
 @config_file_option()
 @click.argument('project', type=str)
 @main.command('plan', context_settings=dict(ignore_unknown_options=True))
-def tf_plan(project, components, exclude_components, environment, config, verbose, tf_args):
+def tf_plan(project, components, component_types, exclude_components, environment, config, verbose, tf_args):
     """Terraform plan command (https://www.terraform.io/docs/commands/plan.html)."""
     run(
         command='plan',
         project=project,
         components=components,
+        component_types=component_types,
         exclude_components=exclude_components,
         environment=environment,
         config=config,
@@ -123,15 +126,17 @@ def tf_plan(project, components, exclude_components, environment, config, verbos
 @config_file_option()
 @environment_option()
 @exclude_components_option()
+@component_types_option()
 @components_option()
 @click.argument('project', type=str)
 @main.command('apply', context_settings=dict(ignore_unknown_options=True))
-def tf_apply(project, components, exclude_components, environment, config, verbose, tf_args):
+def tf_apply(project, components, component_types, exclude_components, environment, config, verbose, tf_args):
     """Terraform apply command (https://www.terraform.io/docs/commands/apply.html)."""
     run(
         command='apply',
         project=project,
         components=components,
+        component_types=component_types,
         exclude_components=exclude_components,
         environment=environment,
         config=config,
@@ -145,15 +150,17 @@ def tf_apply(project, components, exclude_components, environment, config, verbo
 @config_file_option()
 @environment_option()
 @exclude_components_option()
+@component_types_option()
 @components_option()
 @click.argument('project', type=str)
 @main.command('destroy', context_settings=dict(ignore_unknown_options=True))
-def tf_destroy(project, components, exclude_components, environment, config, verbose, tf_args):
+def tf_destroy(project, components, component_types, exclude_components, environment, config, verbose, tf_args):
     """Terraform destroy command (https://www.terraform.io/docs/commands/destroy.html)."""
     run(
         command='destroy',
         project=project,
         components=components,
+        component_types=component_types,
         exclude_components=exclude_components,
         environment=environment,
         config=config,
@@ -167,15 +174,17 @@ def tf_destroy(project, components, exclude_components, environment, config, ver
 @config_file_option()
 @environment_option()
 @exclude_components_option()
+@component_types_option()
 @components_option()
 @click.argument('project', type=str)
 @main.command('refresh', context_settings=dict(ignore_unknown_options=True))
-def tf_refresh(project, components, exclude_components, environment, config, verbose, tf_args):
+def tf_refresh(project, components, component_types, exclude_components, environment, config, verbose, tf_args):
     """Terraform refresh command (https://www.terraform.io/docs/commands/refresh.html)."""
     run(
         command='refresh',
         project=project,
         components=components,
+        component_types=component_types,
         exclude_components=exclude_components,
         environment=environment,
         config=config,
@@ -189,15 +198,17 @@ def tf_refresh(project, components, exclude_components, environment, config, ver
 @config_file_option()
 @environment_option()
 @exclude_components_option()
+@component_types_option()
 @components_option()
 @click.argument('project', type=str)
 @main.command('validate', context_settings=dict(ignore_unknown_options=True))
-def tf_validate(project, components, exclude_components, environment, config, verbose, tf_args):
+def tf_validate(project, components, component_types, exclude_components, environment, config, verbose, tf_args):
     """Terraform validate command (https://www.terraform.io/docs/commands/validate.html)."""
     run(
         command='validate',
         project=project,
         components=components,
+        component_types=component_types,
         exclude_components=exclude_components,
         environment=environment,
         config=config,
@@ -235,16 +246,18 @@ def tf_import(project, component, address, id, environment, config, verbose, tf_
 @config_file_option()
 @environment_option()
 @exclude_components_option()
+@component_types_option()
 @components_option()
 @click.argument('project', type=str)
 @click.argument('subcommand', type=click.Choice(['list', 'mv', 'pull', 'push', 'rm', 'show']))
 @main.command('state', context_settings=dict(ignore_unknown_options=True))
-def tf_state(subcommand, project, components, exclude_components, environment, config, verbose, tf_args):
+def tf_state(subcommand, project, components, component_types, exclude_components, environment, config, verbose, tf_args):
     """Terraform state command (https://www.terraform.io/docs/commands/state/index.html)."""
     run(
         command='state %s' % subcommand,
         project=project,
         components=components,
+        component_types=component_types,
         exclude_components=exclude_components,
         environment=environment,
         config=config,

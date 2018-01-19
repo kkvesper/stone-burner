@@ -160,9 +160,19 @@ def check_validation(project, component, environment, component_config, verbose=
     return True
 
 
-def run(command, project, components, environment, config, exclude_components=[], verbose=0, *args, **kwargs):
+def run(command, project, components, environment, config, component_types=[], exclude_components=[], verbose=0, *args, **kwargs):
     project = validate_project(project, config)
     p_components = parse_project_config(config, project)
+
+    if component_types:
+        p_components = {
+            c: p_components[c]
+            for c in p_components.keys()
+            if p_components[c]['component_type'] in component_types
+        }
+
+        if not p_components:
+            raise Exception("There isn't any component belonging to the specified types")
 
     if components:
         components = validate_components(components, project, config)

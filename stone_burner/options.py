@@ -65,7 +65,7 @@ def exclude_components_option():
 def component_types_option():
     return click.option(
         '-ct',
-        '--component-type',
+        '--component-types',
         type=str,
         default=[],
         help='Apply your action only to the components which belong to this type.',
