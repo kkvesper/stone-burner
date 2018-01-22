@@ -109,9 +109,19 @@ def manual_install(packages, plugin_dir, plugin_permissions=PLUGIN_PERMISSIONS):
     success('OK!')
 
 
-def discover_and_install(plugins_dir, project, components, exclude_components, config, verbose):
+def discover_and_install(plugins_dir, project, components, config, component_types=[], exclude_components=[], verbose=0, *args, **kwargs):
     project = validate_project(project, config)
     p_components = parse_project_config(config, project)
+
+    if component_types:
+        p_components = {
+            c: p_components[c]
+            for c in p_components.keys()
+            if p_components[c]['component_type'] in component_types
+        }
+
+        if not p_components:
+            raise Exception("There isn't any component belonging to the specified types")
 
     if components:
         components = validate_components(components, project, config)
@@ -125,7 +135,7 @@ def discover_and_install(plugins_dir, project, components, exclude_components, c
 
     for component in components:
         component_config = p_components[component] or {}
-        c_paths = get_component_paths(project, component, component_config, environment)
+        c_paths = get_component_paths(project, component, component_config, '')
         config_dir = c_paths['config_dir']
 
         os.chdir(config_dir)
