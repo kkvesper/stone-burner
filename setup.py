@@ -12,7 +12,7 @@ setup(
     author='Rodrigo Argüello Flores',
     author_email='rodrigo@kkvesper.jp',
     url='https://github.com/kkvesper/stone-burner',
-    download_url='https://github.com/kkvesper/stone-burner/archive/%s.tar.gz' % __version__,
+    download_url='https://github.com/kkvesper/stone-burner/archive/v%s.tar.gz' % __version__,
     packages=find_packages(),
     install_requires=[
         'jinja2>=2.9',
