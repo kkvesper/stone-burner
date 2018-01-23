@@ -62,16 +62,7 @@ def run_command(cmd, project, component, component_config, environment, verbose=
         if verbose >= 0:
             info('<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>')
 
-    if need_init:
-        init_tf_cmd = 'init'
-
-        def init_pre_func():
-            info('State not found or init forced, Initializing with terraform init...') if verbose >= 0 else None
-    else:
-        init_tf_cmd = 'get'
-
-        def init_pre_func():
-            info('Fetching modules with terraform get...') if verbose >= 0 else None
+    init_tf_cmd = 'init' if need_init else 'get'
 
     init_cmd = build_command(
         *args,
@@ -82,6 +73,15 @@ def run_command(cmd, project, component, component_config, environment, verbose=
         environment=environment,
         **new_kwargs
     )
+
+    def init_pre_func():
+        if need_init:
+            info('State not found or init forced, Initializing with terraform init...')
+        else:
+            info('Fetching modules with terraform get...')
+
+        if verbose > 0:
+            info('Running init command: %s' % ' '.join(init_cmd))
 
     exec_command(
         cmd=init_cmd,

@@ -140,10 +140,13 @@ class TFAttributes(object):
         self.plugin_dir = get_plugins_dir()
 
     def backend(*args, **kwargs):
-        no_remote = os.environ.get('TF_NO_REMOTE', '0')
+        no_remote = os.environ.get('STONE_BURNER_NO_REMOTE', '0')
         return ['false'] if no_remote == '1' else ['true']
 
     def backend_config(*args, **kwargs):
+        if os.environ.get('STONE_BURNER_NO_REMOTE', '0') == '1':
+            return []
+
         project = kwargs['project']
         component = kwargs['component']
         environment = kwargs['environment']
