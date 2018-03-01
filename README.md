@@ -1,5 +1,7 @@
 # stone-burner
 
+[![Build Status](https://travis-ci.org/kkvesper/stone-burner.svg?branch=master)](https://travis-ci.org/kkvesper/stone-burner)
+
 Wrapper over `terraform` which adds a configuration layer and state splitting between
 projects and/or environments, among other features.
 
