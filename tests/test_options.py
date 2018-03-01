@@ -5,7 +5,7 @@ import click
 from stone_burner.options import validate_components
 from stone_burner.options import validate_environment
 
-from utils import SAMPLE_CONFIG
+from .utils import SAMPLE_CONFIG
 
 
 def test_validate_components_1():

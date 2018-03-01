@@ -2,7 +2,7 @@ import click
 import os
 import yaml
 
-from config import parse_project_config
+from .config import parse_project_config
 
 
 def config_file_option():

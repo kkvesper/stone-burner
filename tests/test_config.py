@@ -4,7 +4,7 @@ from stone_burner.config import parse_project_config
 from stone_burner.config import TFAttributes
 from stone_burner.config import get_component_paths
 
-from utils import SAMPLE_CONFIG
+from .utils import SAMPLE_CONFIG
 
 
 def test_parse_project_config_1():

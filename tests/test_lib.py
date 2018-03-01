@@ -4,7 +4,7 @@ import subprocess
 from stone_burner.lib import run
 from stone_burner.lib import check_validation
 
-from utils import SAMPLE_CONFIG
+from .utils import SAMPLE_CONFIG
 
 
 def test_run_1(monkeypatch):

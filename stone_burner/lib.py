@@ -4,19 +4,19 @@ import copy
 import os
 import sys
 
-from config import OPTIONS_BY_COMMAND
-from config import TFAttributes
-from config import parse_project_config
-from config import get_component_paths
+from .config import OPTIONS_BY_COMMAND
+from .config import TFAttributes
+from .config import parse_project_config
+from .config import get_component_paths
 
-from options import validate_components
-from options import validate_environment
-from options import validate_project
+from .options import validate_components
+from .options import validate_environment
+from .options import validate_project
 
-from utils import error
-from utils import exec_command
-from utils import info
-from utils import success
+from .utils import error
+from .utils import exec_command
+from .utils import info
+from .utils import success
 
 
 def run_command(cmd, project, component, component_config, environment, verbose=0, *args, **kwargs):
@@ -178,7 +178,7 @@ def run(command, project, components, environment, config, component_types=[], e
         components = validate_components(components, project, config)
     else:
         # If no component is chosen, use all of them
-        components = p_components.keys()
+        components = list(p_components.keys())
 
     components = list(set(components) - set(exclude_components))
     environment = validate_environment(environment, config)

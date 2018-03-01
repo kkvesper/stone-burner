@@ -7,16 +7,16 @@ import platform
 import urllib
 import zipfile
 
-from config import parse_project_config
-from config import get_component_paths
+from .config import parse_project_config
+from .config import get_component_paths
 
-from options import validate_project
-from options import validate_components
+from .options import validate_project
+from .options import validate_components
 
-from utils import info
-from utils import success
-from utils import error
-from utils import exec_command
+from .utils import info
+from .utils import success
+from .utils import error
+from .utils import exec_command
 
 # 0755
 PLUGIN_PERMISSIONS = (
@@ -127,7 +127,7 @@ def discover_and_install(plugins_dir, project, components, config, component_typ
         components = validate_components(components, project, config)
     else:
         # If no component is chosen, use all of them
-        components = p_components.keys()
+        components = list(p_components.keys())
 
     components = list(set(components) - set(exclude_components))
 

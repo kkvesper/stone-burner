@@ -7,10 +7,10 @@ all: test
 
 dev:
 	@echo $(TAG)Installing dev requirements$(END)
-	pip install --upgrade -r requirements-dev.txt
+	pip install -r requirements-dev.txt
 
 	@echo $(TAG)Installing stone-burner$(END)
-	pip install --upgrade --editable .
+	pip install --editable .
 
 	@echo
 

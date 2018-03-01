@@ -4,24 +4,24 @@ from __future__ import print_function
 
 import click
 
-from config import get_plugins_dir
-from config import parse_project_config
+from .config import get_plugins_dir
+from .config import parse_project_config
 
-from install import install_terraform_plugin
-from install import manual_install
-from install import discover_and_install
+from .install import install_terraform_plugin
+from .install import manual_install
+from .install import discover_and_install
 
-from lib import run
+from .lib import run
 
-from options import config_file_option
-from options import components_option
-from options import component_types_option
-from options import environment_option
-from options import exclude_components_option
-from options import validate_project
-from options import verbose_option
+from .options import config_file_option
+from .options import components_option
+from .options import component_types_option
+from .options import environment_option
+from .options import exclude_components_option
+from .options import validate_project
+from .options import verbose_option
 
-from utils import info
+from .utils import info
 
 
 @click.group()

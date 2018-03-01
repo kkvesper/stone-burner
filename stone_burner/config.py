@@ -59,7 +59,7 @@ def parse_project_config(config, project):
                 'validate': {},
             }
         elif isinstance(elem, dict):
-            d_keys = elem.keys()
+            d_keys = list(elem.keys())
 
             if len(d_keys) != 1:
                 raise Exception(
@@ -77,7 +77,7 @@ def parse_project_config(config, project):
                             'validate': {},
                         }
                     elif isinstance(c, dict):
-                        d_keys = c.keys()
+                        d_keys = list(c.keys())
 
                         if len(d_keys) != 1:
                             raise Exception(
