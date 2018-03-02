@@ -22,5 +22,5 @@ publish:
 
 test: dev
 	@echo $(TAG)Running tests on the current Python interpreter with coverage $(END)
-	py.test --cov ./stone_burner --cov ./tests --doctest-modules --verbose ./stone_burner ./tests
+	py.test --cov ./stone_burner --cov ./tests --doctest-modules --cov-report term-missing --verbose ./stone_burner ./tests
 	@echo

@@ -4,7 +4,6 @@ import subprocess
 import shutil
 import tempfile
 import platform
-import urllib
 import zipfile
 
 from .config import parse_project_config
@@ -17,6 +16,11 @@ from .utils import info
 from .utils import success
 from .utils import error
 from .utils import exec_command
+
+try:
+    from urllib.request import urlopen
+except ImportError:
+    from urllib2 import urlopen
 
 # 0755
 PLUGIN_PERMISSIONS = (
@@ -34,9 +38,10 @@ def install_terraform_plugin(plugin_dir, plugin_permissions=PLUGIN_PERMISSIONS):
             # Remove previous terraform plugin
             os.remove(os.path.join(plugin_dir, plugin))
 
-    tf_bin = subprocess.check_output(['which', 'terraform']).split('\n')[0]
+    tf_bin = subprocess.check_output(
+        ['which', 'terraform']).decode().split('\n')[0]
     tf_version = subprocess.check_output(
-        ['terraform', '-v']).split('\n')[0].split(' ')[1]
+        ['terraform', '-v']).decode().split('\n')[0].split(' ')[1]
 
     info('Found terraform at %s on version: %s' % (tf_bin, tf_version))
 
@@ -70,7 +75,6 @@ def manual_install(packages, plugin_dir, plugin_permissions=PLUGIN_PERMISSIONS):
     base_url = 'https://releases.hashicorp.com/'
 
     temp_dir = tempfile.mkdtemp()
-    downloader = urllib.URLopener()
 
     for pkg in packages:
         info('Installing %s...' % pkg)
@@ -89,7 +93,8 @@ def manual_install(packages, plugin_dir, plugin_permissions=PLUGIN_PERMISSIONS):
 
             info('downloading %s...' % url)
             try:
-                downloader.retrieve(url, dest_file)
+                with urlopen(url) as response, open(dest_file, 'wb') as out_file:
+                    shutil.copyfileobj(response, out_file)
             except Exception:
                 import traceback
                 error('An error ocurred downloading %s' % url)
@@ -121,10 +126,17 @@ def discover_and_install(plugins_dir, project, components, config, component_typ
         }
 
         if not p_components:
-            raise Exception("There isn't any component belonging to the specified types")
+            raise Exception(
+                "There isn't any component belonging to the specified types")
+
+        components = [
+            c
+            for c in list(p_components.keys())
+            if c in components
+        ]
 
     if components:
-        components = validate_components(components, project, config)
+        components = validate_components(components, p_components)
     else:
         # If no component is chosen, use all of them
         components = list(p_components.keys())

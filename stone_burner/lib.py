@@ -175,7 +175,7 @@ def run(command, project, components, environment, config, component_types=[], e
             raise Exception("There isn't any component belonging to the specified types")
 
     if components:
-        components = validate_components(components, project, config)
+        components = validate_components(components, p_components)
     else:
         # If no component is chosen, use all of them
         components = list(p_components.keys())
