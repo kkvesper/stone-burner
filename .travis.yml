@@ -1,9 +1,9 @@
   language: python
   python:
-    - "2.7"
     - "3.6"
   install:
     - pip install --upgrade -r requirements-dev.txt
-    - pip install --upgrade --editable .
+    - pip install --upgrade .
   script:
+    - pylint stone_burner -f colorized --errors-only
     - py.test --cov ./stone_burner --cov ./tests --doctest-modules --verbose ./stone_burner ./tests

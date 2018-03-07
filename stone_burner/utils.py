@@ -1,6 +1,6 @@
 import os
-import crayons
 import subprocess
+import crayons
 
 
 def add_signature(func):
@@ -34,12 +34,12 @@ def debug(msg):
 
 
 def exec_command(
-    cmd,
-    tf_data_dir=None,
-    pre_func=lambda: None,
-    except_func=lambda: None,
-    else_func=lambda: None,
-    finally_func=lambda: None,
+        cmd,
+        tf_data_dir=None,
+        pre_func=lambda: None,
+        except_func=lambda: None,
+        else_func=lambda: None,
+        finally_func=lambda: None,
 ):
     pre_func()
 

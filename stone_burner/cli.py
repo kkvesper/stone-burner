@@ -4,6 +4,8 @@ from __future__ import print_function
 
 import click
 
+from stone_burner import __version__
+
 from .config import get_plugins_dir
 from .config import parse_project_config
 
@@ -24,6 +26,7 @@ from .options import verbose_option
 from .utils import info
 
 
+@click.version_option(version=__version__)
 @click.group()
 def main():
     """Give more power to Terraform."""
@@ -32,42 +35,42 @@ def main():
 
 @config_file_option()
 @main.command('projects')
-def projects(config):
+def projects_cmd(config):
     """Display available projects in your configuration."""
-    projects = config['projects'].keys()
+    p_names = config['projects'].keys()
 
     info('Available projects:')
-    for project in projects:
-        info('- %s' % project)
+    for p_name in p_names:
+        info('- %s' % p_name)
 
 
 @config_file_option()
 @component_types_option()
 @click.argument('project', type=str)
 @main.command('components')
-def components(project, component_types, config):
+def components_cmd(project, component_types, config):
     """Display available components for a project in your configuration."""
     project = validate_project(project, config)
     p_components = parse_project_config(config, project)
-    components = p_components.keys()
+    c_names = p_components.keys()
 
     if component_types:
         info('Available components for project "%s" of type(s) "%s":' % (project, ', '.join(component_types)))
     else:
         info('Available components for project "%s":' % project)
 
-    for component in components:
+    for c_name in c_names:
         should_print = True
 
         if component_types:
-            component_config = p_components[component]
-            ct = component_config.get('component_type', component)
+            component_config = p_components[c_name]
+            c_type = component_config.get('component_type', c_name)
 
-            if ct not in component_types:
+            if c_type not in component_types:
                 should_print = False
 
         if should_print:
-            info('- %s' % component)
+            info('- %s' % c_name)
 
 
 @verbose_option()
@@ -85,7 +88,7 @@ def components(project, component_types, config):
 )
 @click.argument('packages', type=str, nargs=-1)
 @main.command('install')
-def install(packages, **kwargs):
+def install_cmd(packages, **kwargs):
     """Discover and downloads plugins from your components."""
     plugins_dir = get_plugins_dir()
 
@@ -106,18 +109,11 @@ def install(packages, **kwargs):
 @config_file_option()
 @click.argument('project', type=str)
 @main.command('plan', context_settings=dict(ignore_unknown_options=True))
-def tf_plan(project, components, component_types, exclude_components, environment, config, verbose, tf_args):
+def tf_plan_cmd(**kwargs):
     """Terraform plan command (https://www.terraform.io/docs/commands/plan.html)."""
     run(
         command='plan',
-        project=project,
-        components=components,
-        component_types=component_types,
-        exclude_components=exclude_components,
-        environment=environment,
-        config=config,
-        tf_args=tf_args,
-        verbose=verbose,
+        **kwargs,
     )
 
 
@@ -130,18 +126,11 @@ def tf_plan(project, components, component_types, exclude_components, environmen
 @components_option()
 @click.argument('project', type=str)
 @main.command('apply', context_settings=dict(ignore_unknown_options=True))
-def tf_apply(project, components, component_types, exclude_components, environment, config, verbose, tf_args):
+def tf_apply_cmd(**kwargs):
     """Terraform apply command (https://www.terraform.io/docs/commands/apply.html)."""
     run(
         command='apply',
-        project=project,
-        components=components,
-        component_types=component_types,
-        exclude_components=exclude_components,
-        environment=environment,
-        config=config,
-        tf_args=tf_args,
-        verbose=verbose,
+        **kwargs,
     )
 
 
@@ -154,18 +143,11 @@ def tf_apply(project, components, component_types, exclude_components, environme
 @components_option()
 @click.argument('project', type=str)
 @main.command('destroy', context_settings=dict(ignore_unknown_options=True))
-def tf_destroy(project, components, component_types, exclude_components, environment, config, verbose, tf_args):
+def tf_destroy_cmd(**kwargs):
     """Terraform destroy command (https://www.terraform.io/docs/commands/destroy.html)."""
     run(
         command='destroy',
-        project=project,
-        components=components,
-        component_types=component_types,
-        exclude_components=exclude_components,
-        environment=environment,
-        config=config,
-        tf_args=tf_args,
-        verbose=verbose,
+        **kwargs,
     )
 
 
@@ -178,18 +160,11 @@ def tf_destroy(project, components, component_types, exclude_components, environ
 @components_option()
 @click.argument('project', type=str)
 @main.command('refresh', context_settings=dict(ignore_unknown_options=True))
-def tf_refresh(project, components, component_types, exclude_components, environment, config, verbose, tf_args):
+def tf_refresh_cmd(**kwargs):
     """Terraform refresh command (https://www.terraform.io/docs/commands/refresh.html)."""
     run(
         command='refresh',
-        project=project,
-        components=components,
-        component_types=component_types,
-        exclude_components=exclude_components,
-        environment=environment,
-        config=config,
-        tf_args=tf_args,
-        verbose=verbose,
+        **kwargs,
     )
 
 
@@ -202,18 +177,11 @@ def tf_refresh(project, components, component_types, exclude_components, environ
 @components_option()
 @click.argument('project', type=str)
 @main.command('validate', context_settings=dict(ignore_unknown_options=True))
-def tf_validate(project, components, component_types, exclude_components, environment, config, verbose, tf_args):
+def tf_validate_cmd(**kwargs):
     """Terraform validate command (https://www.terraform.io/docs/commands/validate.html)."""
     run(
         command='validate',
-        project=project,
-        components=components,
-        component_types=component_types,
-        exclude_components=exclude_components,
-        environment=environment,
-        config=config,
-        tf_args=tf_args,
-        verbose=verbose,
+        **kwargs,
     )
 
 
@@ -221,23 +189,17 @@ def tf_validate(project, components, component_types, exclude_components, enviro
 @verbose_option()
 @config_file_option()
 @environment_option()
-@click.argument('id', type=str)
+@click.argument('resource_id', type=str)
 @click.argument('address', type=str)
 @click.argument('component', type=str)
 @click.argument('project', type=str)
 @main.command('import', context_settings=dict(ignore_unknown_options=True))
-def tf_import(project, component, address, id, environment, config, verbose, tf_args):
+def tf_import_cmd(component, **kwargs):
     """Terraform import command (https://www.terraform.io/docs/import/index.html)."""
     run(
         command='import',
-        project=project,
         components=[component],
-        environment=environment,
-        config=config,
-        tf_args=tf_args,
-        verbose=verbose,
-        address=address,
-        id=id,
+        **kwargs,
     )
 
 
@@ -251,18 +213,11 @@ def tf_import(project, component, address, id, environment, config, verbose, tf_
 @click.argument('project', type=str)
 @click.argument('subcommand', type=click.Choice(['list', 'mv', 'pull', 'push', 'rm', 'show']))
 @main.command('state', context_settings=dict(ignore_unknown_options=True))
-def tf_state(subcommand, project, components, component_types, exclude_components, environment, config, verbose, tf_args):
+def tf_state(subcommand, **kwargs):
     """Terraform state command (https://www.terraform.io/docs/commands/state/index.html)."""
     run(
         command='state %s' % subcommand,
-        project=project,
-        components=components,
-        component_types=component_types,
-        exclude_components=exclude_components,
-        environment=environment,
-        config=config,
-        tf_args=tf_args,
-        verbose=verbose,
+        **kwargs,
     )
 
 

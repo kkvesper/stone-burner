@@ -4,18 +4,14 @@ import shutil
 import platform
 import tempfile
 import zipfile
-import stone_burner
+import builtins
+import urllib.request
 
 from stone_burner.install import install_terraform_plugin
 from stone_burner.install import manual_install
 from stone_burner.install import discover_and_install
 
 from .utils import SAMPLE_CONFIG
-
-try:
-    import builtins
-except ImportError:
-    import __builtin__ as builtins
 
 
 def test_install_terraform_plugin_1(monkeypatch):
@@ -83,7 +79,7 @@ def test_manual_install_1(monkeypatch):
 
         return MockedOpen()
 
-    monkeypatch.setattr(stone_burner.install, 'urlopen', mp_url_open)
+    monkeypatch.setattr(urllib.request, 'urlopen', mp_url_open)
     monkeypatch.setattr(builtins, 'open', mp_open)
 
     monkeypatch.setattr(zipfile, 'ZipFile', mp_zip_file)

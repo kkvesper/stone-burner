@@ -8,19 +8,12 @@ projects and/or environments, among other features.
 ## Requirements
 
 * [Terraform](https://www.terraform.io/) v0.11 or higher
-* Python 2.7 or higher
+* Python 3.6
 
 ## Install
 
 ```bash
 pip install --upgrade stone-burner
-```
-
-Alternatively, you can install it in your local machine in an isolated virtualenv with
-[pipenv](https://pipenv.readthedocs.io/en/latest/). First of all, clone the repository and run:
-
-```bash
-pipenv install
 ```
 
 ## Usage

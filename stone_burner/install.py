@@ -6,6 +6,8 @@ import tempfile
 import platform
 import zipfile
 
+from urllib.request import urlopen
+
 from .config import parse_project_config
 from .config import get_component_paths
 
@@ -17,10 +19,6 @@ from .utils import success
 from .utils import error
 from .utils import exec_command
 
-try:
-    from urllib.request import urlopen
-except ImportError:
-    from urllib2 import urlopen
 
 # 0755
 PLUGIN_PERMISSIONS = (
@@ -114,14 +112,16 @@ def manual_install(packages, plugin_dir, plugin_permissions=PLUGIN_PERMISSIONS):
     success('OK!')
 
 
-def discover_and_install(plugins_dir, project, components, config, component_types=[], exclude_components=[], verbose=0, *args, **kwargs):
+def discover_and_install(
+    plugins_dir, project, components, config, component_types=[], exclude_components=[], verbose=0, *args, **kwargs
+):
     project = validate_project(project, config)
     p_components = parse_project_config(config, project)
 
     if component_types:
         p_components = {
             c: p_components[c]
-            for c in p_components.keys()
+            for c in p_components
             if p_components[c]['component_type'] in component_types
         }
 
@@ -159,13 +159,13 @@ def discover_and_install(plugins_dir, project, components, config, component_typ
             tf_data_dir=temp_dir,
         )
 
-        for root, dirs, filenames in os.walk(os.path.join(temp_dir, 'plugins')):
-            for f in filenames:
-                f_path = os.path.join(root, f)
+        for root, _, filenames in os.walk(os.path.join(temp_dir, 'plugins')):
+            for f_name in filenames:
+                f_path = os.path.join(root, f_name)
 
-                if f != 'lock.json':
+                if f_name != 'lock.json':
                     # TODO: keep json.lock file and merge new ones
-                    shutil.move(f_path, os.path.join(plugins_dir, f))
+                    shutil.move(f_path, os.path.join(plugins_dir, f_name))
 
         shutil.rmtree(temp_dir)
         os.chdir(workdir)

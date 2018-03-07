@@ -137,13 +137,17 @@ class TFAttributes(object):
         self.projects_dir = projects_dir
         self.states_dir = states_dir
         self.vars_dir = vars_dir
-        self.plugin_dir = get_plugins_dir()
+        self._plugin_dir = get_plugins_dir()
 
+    @staticmethod
     def backend(*args, **kwargs):
+        #pylint: disable=unused-argument
         no_remote = os.environ.get('STONE_BURNER_NO_REMOTE', '0')
         return ['false'] if no_remote == '1' else ['true']
 
+    @staticmethod
     def backend_config(*args, **kwargs):
+        #pylint: disable=unused-argument
         if os.environ.get('STONE_BURNER_NO_REMOTE', '0') == '1':
             return []
 
@@ -166,12 +170,14 @@ class TFAttributes(object):
         return env_config[environment]
 
     def plugin_dir(self, *args, **kwargs):
-        return [self.plugin_dir]
+        return [self._plugin_dir]
 
+    @staticmethod
     def get_plugins(*args, **kwargs):
         return ['false']
 
     def var_file(self, *args, **kwargs):
+        #pylint: disable=unused-argument
         project = kwargs['project']
         component = kwargs['component']
         environment = kwargs['environment']
@@ -191,12 +197,17 @@ class TFAttributes(object):
 
         return result
 
+    @staticmethod
     def address(*args, **kwargs):
+        #pylint: disable=unused-argument
         return [kwargs['address']]
 
+    @staticmethod
     def id(*args, **kwargs):
+        #pylint: disable=unused-argument
         return [kwargs['id']]
 
+    @staticmethod
     def check_variables(*args, **kwargs):
         component_config = kwargs['component_config']
         validate_config = component_config.get('validate', {}) or {}
@@ -205,6 +216,7 @@ class TFAttributes(object):
         return ['true'] if check_variables else ['false']
 
     def state(self, *args, **kwargs):
+        #pylint: disable=unused-argument
         project = kwargs['project']
         component = kwargs['component']
         environment = kwargs['environment']

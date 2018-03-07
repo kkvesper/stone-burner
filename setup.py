@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from stone_burner import __version__
-
 from setuptools import find_packages
 from setuptools import setup
+
+from stone_burner import __version__
 
 setup(
     name='stone-burner',
