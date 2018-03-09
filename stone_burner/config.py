@@ -1,5 +1,4 @@
 import os
-import six
 
 
 DEFAULT_STONE_BURNER_DIR = os.path.join(os.path.expanduser("~"), '.stoneburner')
@@ -53,7 +52,7 @@ def parse_project_config(config, project):
     p_config = config['projects'][project]
 
     for elem in p_config:
-        if isinstance(elem, six.string_types):
+        if isinstance(elem, str):
             result[elem] = {
                 'component_type': elem,
                 'validate': {},
@@ -71,7 +70,7 @@ def parse_project_config(config, project):
             if isinstance(info, list):
                 # It's a list of components from the same type
                 for c in info:
-                    if isinstance(c, six.string_types):
+                    if isinstance(c, str):
                         result[c] = {
                             'component_type': component_type,
                             'validate': {},
