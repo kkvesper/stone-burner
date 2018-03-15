@@ -2,6 +2,8 @@
 
 from __future__ import print_function
 
+import os
+import sys
 import click
 
 from stone_burner import __version__
@@ -24,6 +26,8 @@ from .options import validate_project
 from .options import verbose_option
 
 from .utils import info
+from .utils import error
+from .utils import success
 
 
 @click.version_option(version=__version__)
@@ -31,6 +35,40 @@ from .utils import info
 def main():
     """Give more power to Terraform."""
     pass
+
+
+@click.argument('component', type=str)
+@click.argument('project', type=str)
+@main.command('init')
+def init(project, component):
+    """Initialize a Terraform component"""
+    projects_dir = './projects'
+
+    proj_dir = os.path.join(projects_dir, project)
+    if not os.path.exists(proj_dir):
+        info(f'Creating project at {proj_dir}...')
+        os.makedirs(proj_dir)
+
+    comp_dir = os.path.join(proj_dir, component)
+    if os.path.exists(comp_dir):
+        error(f'Component {component} already exists for {project} project')
+        sys.exit(1)
+
+    info(f'Creating component at {comp_dir}...')
+    os.makedirs(comp_dir)
+
+    tf_common_files = [f for f in os.listdir(projects_dir) if f.endswith('.tf')]
+    if tf_common_files:
+        info('Found .tf file(s) in projects dir. Creating symlinks...')
+
+        for tf_file in tf_common_files:
+            src = os.path.relpath(os.path.join(projects_dir, tf_file), comp_dir)
+            dest = os.path.join(comp_dir, tf_file)
+
+            os.symlink(src, dest)
+
+    success('Done!')
+
 
 
 @config_file_option()
