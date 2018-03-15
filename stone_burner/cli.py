@@ -254,7 +254,31 @@ def tf_import_cmd(component, **kwargs):
 def tf_state(subcommand, **kwargs):
     """Terraform state command (https://www.terraform.io/docs/commands/state/index.html)."""
     run(
-        command='state %s' % subcommand,
+        command=f'state {subcommand}',
+        **kwargs,
+    )
+
+
+@click.argument('tf_args', nargs=-1, type=click.UNPROCESSED)
+@verbose_option()
+@environment_option()
+@exclude_components_option()
+@component_types_option()
+@components_option()
+@config_file_option()
+@click.option(
+    'project',
+    '-p',
+    '--project',
+    type=str,
+    help='Project to manage.',
+)
+@click.argument('output_name', type=str)
+@main.command('output', context_settings=dict(ignore_unknown_options=True))
+def tf_output_cmd(**kwargs):
+    """Terraform output command (https://www.terraform.io/docs/commands/output.html)."""
+    run(
+        command=f'output',
         **kwargs,
     )
 

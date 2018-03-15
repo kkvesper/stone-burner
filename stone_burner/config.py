@@ -44,6 +44,10 @@ OPTIONS_BY_COMMAND = {
         'options': [],
         'args': [],
     },
+    'output': {
+        'options': ['state'],
+        'args': ['output_name'],
+    },
 }
 
 
@@ -225,3 +229,8 @@ class TFAttributes(object):
         )
 
         return [state_file]
+
+    @staticmethod
+    def output_name(*args, **kwargs):
+        #pylint: disable=unused-argument
+        return [kwargs['output_name']]
