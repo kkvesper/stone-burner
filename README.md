@@ -104,10 +104,12 @@ use your `-e` or `--environment` flag. For example:
 environments:
   - name: production
     aws_profile: my-production-profile
+    aws_region: us-east-1
     states_bucket: terraform-states-production
 
   - name: staging
     aws_profile: my-staging-profile
+    aws_region: ap-northeast-1
     states_bucket: terraform-states-staging
     default: true
 ```

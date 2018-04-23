@@ -165,6 +165,7 @@ class TFAttributes(object):
             env['name']: [
                 'bucket=%s' % env['states_bucket'],
                 'profile=%s' % env['aws_profile'],
+                'region=%s' % env['aws_region'],
                 'key=%s' % state_key,
             ]
             for env in config['environments']

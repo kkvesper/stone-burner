@@ -3,11 +3,13 @@ SAMPLE_CONFIG = {
         {
             'name': 'e1',
             'aws_profile': 'e1_profile',
+            'aws_region': 'r1',
             'states_bucket': 'e1_bucket'
         },
         {
             'name': 'e2',
             'aws_profile': 'e2',
+            'aws_region': 'r2',
             'default': True,
             'states_bucket': 'e2_bucket'
         }
