@@ -34,7 +34,7 @@ OPTIONS_BY_COMMAND = {
     },
     'import': {
         'options': ['var-file', 'state'],
-        'args': ['address', 'id'],
+        'args': ['address', 'resource_id'],
     },
     'validate': {
         'options': ['var-file', 'check-variables'],
@@ -207,9 +207,9 @@ class TFAttributes(object):
         return [kwargs['address']]
 
     @staticmethod
-    def id(*args, **kwargs):
+    def resource_id(*args, **kwargs):
         #pylint: disable=unused-argument
-        return [kwargs['id']]
+        return [kwargs['resource_id']]
 
     @staticmethod
     def check_variables(*args, **kwargs):
