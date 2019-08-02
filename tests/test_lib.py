@@ -15,7 +15,7 @@ def test_run_1(monkeypatch):
     run(
         command='plan',
         project='p1',
-        components=['c1', 'c2', 'c3'],
+        components=['c1', 'c2'],
         exclude_components=[],
         environment='e1',
         config=SAMPLE_CONFIG,

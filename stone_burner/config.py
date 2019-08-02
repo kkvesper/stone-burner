@@ -37,7 +37,7 @@ OPTIONS_BY_COMMAND = {
         'args': ['address', 'resource_id'],
     },
     'validate': {
-        'options': ['var-file', 'check-variables'],
+        'options': ['var-file'],
         'args': [],
     },
     'state': {
@@ -210,14 +210,6 @@ class TFAttributes(object):
     def resource_id(*args, **kwargs):
         #pylint: disable=unused-argument
         return [kwargs['resource_id']]
-
-    @staticmethod
-    def check_variables(*args, **kwargs):
-        component_config = kwargs['component_config']
-        validate_config = component_config.get('validate', {}) or {}
-        check_variables = validate_config.get('check-variables', True)
-
-        return ['true'] if check_variables else ['false']
 
     def state(self, *args, **kwargs):
         #pylint: disable=unused-argument
